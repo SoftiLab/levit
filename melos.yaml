@@ -1,5 +1,5 @@
 name: levit
-repository: https://github.com/softilab/levit-framework
+repository: https://github.com/softilab/levit
 
 packages:
   - packages/**
