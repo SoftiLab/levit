@@ -229,9 +229,13 @@ void main() {
 
         expect(count == count, isTrue);
         expect(count == count2, isTrue);
+        // ignore: unrelated_type_equality_checks
         expect(count == 1, isTrue);
+        // ignore: unrelated_type_equality_checks
         expect(count == diff, isFalse);
+        // ignore: unrelated_type_equality_checks
         expect(count == 2, isFalse);
+        // ignore: unrelated_type_equality_checks
         expect(count == Object(), isFalse);
 
         expect(count.toString(), equals('1'));

@@ -1,5 +1,5 @@
-import 'package:test/test.dart';
 import 'package:levit_di/levit_di.dart';
+import 'package:test/test.dart';
 
 class DisposableService extends LevitDisposable {
   bool initialized = false;

@@ -1,0 +1,17 @@
+include: package:lints/core.yaml
+
+analyzer:
+  # Exclude generated code and other non-source files
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "build/**"
+    - "lib/generated_plugin_registrant.dart"
+
+
+
+linter:
+  rules:
+    # Add project-specific rules here
+    # prefer_single_quotes: true  # Example
+    # directives_ordering: true   # Example

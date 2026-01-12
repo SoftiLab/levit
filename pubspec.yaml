@@ -7,3 +7,4 @@ environment:
 
 dev_dependencies:
   melos: ^6.3.0
+  lints: ^6.0.0

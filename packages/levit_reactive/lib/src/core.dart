@@ -336,7 +336,9 @@ class Lx<T> implements LxReactive<T> {
   static Future<R> batchAsync<R>(Future<R> Function() callback) async {
     _batchDepth++;
     if (_batchDepth == 1) {
-      for (final mw in middlewares) mw.onBatchStart();
+      for (final mw in middlewares) {
+        mw.onBatchStart();
+      }
     }
 
     enterAsyncScope();
@@ -350,7 +352,9 @@ class Lx<T> implements LxReactive<T> {
 
       _batchDepth--;
       if (_batchDepth == 0) {
-        for (final mw in middlewares) mw.onBatchEnd();
+        for (final mw in middlewares) {
+          mw.onBatchEnd();
+        }
         _flushGlobalBatch();
       }
 
@@ -816,10 +820,10 @@ class CompositeStateChange implements StateChange<void> {
   Type get valueType => CompositeStateChange;
 
   @override
-  void get oldValue => null;
+  void get oldValue {}
 
   @override
-  void get newValue => null;
+  void get newValue {}
 
   @override
   StackTrace? get stackTrace => null;
@@ -1106,6 +1110,7 @@ class LxStream<T> implements LxReactive<AsyncStatus<T>> {
   /// Closes the [LxStream].
   ///
   /// This stops listening to the source stream and releases resources.
+  @override
   void close() {
     unbind();
     _statusLx.close();
@@ -1163,7 +1168,7 @@ class LxStream<T> implements LxReactive<AsyncStatus<T>> {
   @override
   LxStream<R> transform<R>(
       Stream<R> Function(Stream<AsyncStatus<T>> stream) transformer) {
-    return LxStream<R>(transformer(this.stream));
+    return LxStream<R>(transformer(stream));
   }
 
 // ---------------------------------------------------------------------------
@@ -1327,6 +1332,7 @@ class LxFuture<T> implements LxReactive<AsyncStatus<T>> {
   /// Close and release resources.
   ///
   /// Call this when the [LxFuture] is no longer needed to free resources.
+  @override
   void close() {
     _statusLx.close();
   }

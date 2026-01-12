@@ -26,8 +26,10 @@ void main() {
 
       // Read with proxy
       Lx.proxy = observer;
-      final __ = count.value;
-      final ___ = name.value;
+      // ignore: unused_local_variable
+      final val1 = count.value;
+      // ignore: unused_local_variable
+      final val2 = name.value;
       Lx.proxy = null;
 
       expect(observer.notifiers, hasLength(2));

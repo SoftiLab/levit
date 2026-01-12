@@ -203,7 +203,9 @@ void main() {
     test('forEach works', () {
       final items = [1, 2, 3].lx;
       final result = <int>[];
-      items.forEach((e) => result.add(e));
+      for (var e in items) {
+        result.add(e);
+      }
       expect(result, equals([1, 2, 3]));
     });
 

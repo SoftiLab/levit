@@ -18,7 +18,7 @@
 ///     to a controller.
 /// *   **[LStatusBuilder]**: A powerful widget for handling the various states of asynchronous
 ///     operations (Idle, Waiting, Success, Error).
-library levit_flutter;
+library;
 
 export 'package:levit_dart/levit_dart.dart';
 

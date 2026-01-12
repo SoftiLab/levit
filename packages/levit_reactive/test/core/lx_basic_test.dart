@@ -101,7 +101,9 @@ void main() {
     test('equality checks', () {
       final count = Lx<int>(42);
       expect(count == count, isTrue);
+      // ignore: unrelated_type_equality_checks
       expect(count == 42, isTrue);
+      // ignore: unrelated_type_equality_checks
       expect(count == 43, isFalse);
     });
 

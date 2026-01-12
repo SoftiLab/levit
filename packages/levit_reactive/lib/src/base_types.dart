@@ -18,7 +18,7 @@ class LxBool extends Lx<bool> {
   /// Creates a reactive boolean.
   ///
   /// [initial] defaults to `false`.
-  LxBool([bool initial = false]) : super(initial);
+  LxBool([super.initial = false]);
 
   /// Toggles the value between `true` and `false`.
   void toggle() => value = !value;

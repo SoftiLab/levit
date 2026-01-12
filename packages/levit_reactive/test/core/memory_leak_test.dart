@@ -180,7 +180,9 @@ void main() {
       expect(observer.disposers.length, 1);
 
       // Simulate dispose
-      for (final d in observer.disposers) d();
+      for (final d in observer.disposers) {
+        d();
+      }
       observer.disposers.clear();
 
       expect(observer.disposers, isEmpty);

@@ -138,7 +138,9 @@ void main() {
 
       // forEach
       final collected = <int>[];
-      set.forEach((e) => collected.add(e));
+      for (var e in set) {
+        collected.add(e);
+      }
       expect(collected, equals([1, 2, 3, 4, 5]));
 
       // String

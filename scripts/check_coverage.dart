@@ -174,7 +174,7 @@ Future<void> _generateReport(
   }
 
   // Console Output (reuse existing logic but simplified)
-  print('\n' + '=' * 65);
+  print('\n${'=' * 65}');
   print('📊 LEVIT COVERAGE REPORT');
   print('=' * 65);
   print('| Package              | Lines Covered | Total Lines | Coverage |');
@@ -225,7 +225,7 @@ Future<void> _generateReport(
         }
       }
     }
-    print('\n' + '=' * 65);
+    print('\n${'=' * 65}');
   }
 
   // Export to file ONLY if requested

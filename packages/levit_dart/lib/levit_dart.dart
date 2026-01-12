@@ -6,7 +6,7 @@
 /// *   Re-exports of [levit_di] for dependency injection.
 /// *   Re-exports of [levit_reactive] for reactive primitives.
 
-library levit_dart;
+library;
 
 import 'dart:async';
 import 'dart:math' as math;

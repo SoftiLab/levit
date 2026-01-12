@@ -7,7 +7,7 @@
 /// *   Lazy and async initialization.
 /// *   Hierarchical scoping ([LevitScope]).
 /// *   Lifecycle management via [LevitDisposable].
-library levit_di;
+library;
 
 import 'dart:async';
 

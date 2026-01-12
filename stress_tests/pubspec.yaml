@@ -3,21 +3,19 @@ description: Pure Dart reactive state management primitives. The engine of the L
 version: 0.0.1
 publish_to: none
 
-
 environment:
   sdk: ^3.0.0
 
 dependencies:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter 
   levit_reactive:
     path: ../packages/levit_reactive
   levit_di:
     path: ../packages/levit_di
   levit_flutter:
     path: ../packages/levit_flutter
-  flutter:
-    sdk: flutter
-
-dev_dependencies:
   test: ^1.24.0
-  flutter_test:
-    sdk: flutter
+

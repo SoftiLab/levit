@@ -40,7 +40,9 @@ void main() {
     // Measure switching from Idle to Waiting
     final waitStopwatch = Stopwatch()..start();
     // Batch update to trigger them all
-    for (final s in statuses) s.value = const AsyncWaiting<int>();
+    for (final s in statuses) {
+      s.value = const AsyncWaiting<int>();
+    }
     await tester.pump();
     waitStopwatch.stop();
     print(
@@ -59,8 +61,9 @@ void main() {
 
     // Measure switching to Error
     final errorStopwatch = Stopwatch()..start();
-    for (final s in statuses)
+    for (final s in statuses) {
       s.value = AsyncError<int>('Stress Test Error', StackTrace.empty);
+    }
     await tester.pump();
     errorStopwatch.stop();
     print(

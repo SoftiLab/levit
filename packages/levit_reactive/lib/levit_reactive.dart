@@ -38,7 +38,7 @@
 ///
 /// count.value++;
 /// ```
-library levit_reactive;
+library;
 
 export 'src/base_types.dart';
 export 'src/collections.dart';

@@ -76,7 +76,9 @@ void main() {
       });
 
       // Initialize
-      for (final n in nodes) n.value;
+      for (final n in nodes) {
+        n.value;
+      }
 
       final sw = Stopwatch()..start();
       for (int i = 0; i < 100; i++) {
@@ -98,7 +100,9 @@ void main() {
         expect(nodes[i].value, 100 + 100 + i);
       }
 
-      for (final n in nodes) n.close();
+      for (final n in nodes) {
+        n.close();
+      }
     });
   }, timeout: const Timeout(Duration(minutes: 2)));
 }

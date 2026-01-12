@@ -8,7 +8,7 @@ void main() {
       final computed = LxComputed(() => count.value * 2);
 
       int listenerCallCount = 0;
-      final listener = () => listenerCallCount++;
+      int listener() => listenerCallCount++;
 
       // 1. Add listener
       computed.addListener(listener);

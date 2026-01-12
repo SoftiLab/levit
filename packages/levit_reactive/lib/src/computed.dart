@@ -54,6 +54,7 @@ abstract class LxComputed<T> implements LxReactive<T> {
   ///
   /// This must be called when the computed value is no longer needed
   /// to prevent memory leaks from dependency subscriptions.
+  @override
   void close();
 
   /// Whether there are active listeners.
@@ -86,6 +87,7 @@ abstract class LxAsyncComputed<T> implements LxReactive<AsyncStatus<T>> {
   /// Closes the computed value, releasing subscriptions.
   ///
   /// This must be called when the computed value is no longer needed.
+  @override
   void close();
 }
 
