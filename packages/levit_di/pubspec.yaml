@@ -1,14 +1,10 @@
 name: levit_di
 description: Pure Dart dependency injection and service locator. Part of the Levit framework.
-version: 0.0.1
+version: 0.0.2
 repository: https://github.com/softilab/levit
-
 
 environment:
   sdk: ^3.0.0
-
-dependencies:
-  levit_reactive: ^0.0.1
 
 dev_dependencies:
   test: ^1.24.0

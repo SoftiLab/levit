@@ -3,7 +3,6 @@ description: Pure Dart reactive state management primitives. The engine of the L
 version: 0.0.1
 repository: https://github.com/softilab/levit
 
-
 environment:
   sdk: ^3.0.0
 

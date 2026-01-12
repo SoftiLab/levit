@@ -115,5 +115,50 @@ void main() {
       await Future.delayed(Duration(milliseconds: 20));
       expect(asyncVal.valueOrNull, greaterThan(1));
     });
+
+    test('LxAsyncComputed constructor coverage', () {
+      const computed = _TestAsyncComputed();
+      expect(computed, isA<LxAsyncComputed<int>>());
+    });
   });
+}
+
+class _TestAsyncComputed extends LxAsyncComputed<int> {
+  const _TestAsyncComputed();
+
+  @override
+  AsyncStatus<int> get status => AsyncIdle();
+
+  @override
+  bool get hasListener => false;
+
+  @override
+  void refresh() {}
+
+  @override
+  void close() {}
+
+  @override
+  AsyncStatus<int> get value => status;
+
+  @override
+  Stream<AsyncStatus<int>> get stream => const Stream.empty();
+
+  @override
+  Function() addListener(void Function() listener) => () {};
+
+  @override
+  void removeListener(void Function() listener) {}
+
+  @override
+  Map<String, dynamic> get flags => {};
+
+  @override
+  set flags(Map<String, dynamic> f) {}
+
+  @override
+  LxStream<R> transform<R>(
+      Stream<R> Function(Stream<AsyncStatus<int>> stream) transformer) {
+    throw UnimplementedError();
+  }
 }
