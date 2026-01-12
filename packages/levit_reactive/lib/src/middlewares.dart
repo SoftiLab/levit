@@ -69,6 +69,9 @@ class LxLoggerMiddleware extends LxMiddleware {
 /// history.undo();
 /// ```
 class LxHistoryMiddleware extends LxMiddleware {
+  /// Creates a new history middleware.
+  LxHistoryMiddleware();
+
   final List<StateChange> _undoStack = [];
   final List<StateChange> _redoStack = [];
 

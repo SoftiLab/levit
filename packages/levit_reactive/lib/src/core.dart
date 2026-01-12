@@ -73,6 +73,9 @@ class LxNotifier {
   Set<void Function()>? _listeners = {};
   bool _disposed = false;
 
+  /// Creates a new notifier.
+  LxNotifier();
+
   /// Adds a listener.
   ///
   /// The [listener] is added to the set of callbacks invoked on notification.
@@ -299,7 +302,9 @@ class Lx<T> implements LxReactive<T> {
   static R batch<R>(R Function() callback) {
     _batchDepth++;
     if (_batchDepth == 1) {
-      for (final mw in middlewares) mw.onBatchStart();
+      for (final mw in middlewares) {
+        mw.onBatchStart();
+      }
     }
 
     try {
@@ -307,7 +312,9 @@ class Lx<T> implements LxReactive<T> {
     } finally {
       _batchDepth--;
       if (_batchDepth == 0) {
-        for (final mw in middlewares) mw.onBatchEnd();
+        for (final mw in middlewares) {
+          mw.onBatchEnd();
+        }
         _flushGlobalBatch();
       }
     }
@@ -706,6 +713,7 @@ final class AsyncError<T> extends AsyncStatus<T> {
   /// The stack trace.
   final StackTrace? stackTrace;
 
+  /// Creates a new [AsyncError] with the given [error] and optional [stackTrace].
   const AsyncError(this.error, [this.stackTrace, T? lastValue])
       : super(lastValue);
 
@@ -845,6 +853,9 @@ class CompositeStateChange implements StateChange<void> {
 ///
 /// Middleware can intercept, log, or modify state changes.
 abstract class LxMiddleware {
+  /// Base constructor for middleware.
+  LxMiddleware();
+
   /// Filter predicate.
   bool Function(StateChange change)? filter;
 

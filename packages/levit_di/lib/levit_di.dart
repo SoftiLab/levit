@@ -20,6 +20,9 @@ import 'dart:async';
 /// Implement this interface in your controllers or services to receive callbacks
 /// when the object is initialized ([onInit]) or disposed ([onClose]).
 abstract class LevitDisposable {
+  /// Base constructor.
+  const LevitDisposable();
+
   /// Called immediately after the instance is registered via [Levit.put] or
   /// instantiated via [Levit.lazyPut] or [Levit.find].
   ///

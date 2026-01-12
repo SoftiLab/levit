@@ -41,6 +41,8 @@ class LStatusBuilder<T> extends StatefulWidget {
 
   final Widget Function(T data) onSuccess;
   final Widget Function()? onWaiting;
+
+  /// Builder for error state.
   final Widget Function(Object error, StackTrace? stackTrace)? onError;
   final Widget Function()? onIdle;
 

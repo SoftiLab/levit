@@ -82,6 +82,7 @@ abstract class LView<T> extends StatelessWidget {
 /// (e.g., `initState`, `dispose`) in addition to accessing a controller.
 /// This is less common in pure Levit architecture but useful for integrations.
 abstract class LStatefulView<T> extends StatefulWidget {
+  /// Creates a stateful view.
   const LStatefulView({super.key});
 
   /// Optional tag to use when finding the controller.
@@ -102,6 +103,9 @@ abstract class LStatefulView<T> extends StatefulWidget {
 ///
 /// Provides access to the [controller] and additional lifecycle hooks.
 abstract class LState<W extends LStatefulView<T>, T> extends State<W> {
+  /// Base constructor.
+  LState();
+
   /// The controller instance resolved from the dependency injection system.
   T get controller {
     if (context.levit.isRegistered<T>(tag: widget.tag)) {

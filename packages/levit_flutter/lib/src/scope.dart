@@ -286,6 +286,7 @@ extension LevitContextExtension on BuildContext {
 /// }
 /// ```
 abstract class LScopedView<T> extends StatefulWidget {
+  /// Creates a scoped view.
   const LScopedView({super.key});
 
   /// Optional tag for the controller registration.

@@ -71,6 +71,9 @@ abstract class LxComputed<T> implements LxReactive<T> {
 /// final user = LxComputed.async(() => fetchUser(userId.value));
 /// ```
 abstract class LxAsyncComputed<T> implements LxReactive<AsyncStatus<T>> {
+  /// Base constructor for async computed values.
+  const LxAsyncComputed();
+
   /// The current status of the computation.
   AsyncStatus<T> get status;
 
