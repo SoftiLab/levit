@@ -1,0 +1,87 @@
+name: Coverage
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    name: Coverage (Codecov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+          
+      - name: Install Coverage Tools
+        # We need lcov for merging later
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y lcov
+          
+      - name: Run Coverage Script
+        id: coverage_script
+        run: dart scripts/check_coverage.dart
+        
+      - name: Merge Coverage Reports
+        # if: always() # Run even if tests fail (script exits 1 but generates lcovs)
+        run: |
+           echo "Merging coverage reports..."
+           LCOV_ARGS=""
+           # Find all lcov.info files safely
+           while IFS= read -r file; do
+             echo "Found coverage: $file"
+             LCOV_ARGS="$LCOV_ARGS -a $file"
+           done < <(find packages -name lcov.info)
+           
+           if [ -n "$LCOV_ARGS" ]; then
+             mkdir -p coverage
+             lcov $LCOV_ARGS -o coverage/merged_lcov.info --ignore-errors empty
+             echo "Merged coverage saved to coverage/merged_lcov.info"
+           else
+             echo "No coverage files found to merge."
+           fi
+           
+      - name: Publish Test Report
+        if: always()
+        run: |
+           if [ -f "assets/reports/packages_test_coverage.md" ]; then
+             cat assets/reports/packages_test_coverage.md >> $GITHUB_STEP_SUMMARY
+           fi
+          
+      # Upload INDIVIDUAL reports with flags to support separate badges
+      - name: Upload levit_dart Coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+           files: packages/levit_dart/coverage/lcov.info
+           flags: levit_dart
+           token: ${{ secrets.CODECOV_TOKEN }}
+           
+      - name: Upload levit_di Coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+           files: packages/levit_di/coverage/lcov.info
+           flags: levit_di
+           token: ${{ secrets.CODECOV_TOKEN }}
+           
+      - name: Upload levit_reactive Coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+           files: packages/levit_reactive/coverage/lcov.info
+           flags: levit_reactive
+           token: ${{ secrets.CODECOV_TOKEN }}
+           
+      - name: Upload levit_flutter Coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+           files: packages/levit_flutter/coverage/lcov.info
+           flags: levit_flutter
+           token: ${{ secrets.CODECOV_TOKEN }}

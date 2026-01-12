@@ -1,0 +1,47 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+*.dart.js
+*.js.deps
+*.js.map
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Coverage
+**/coverage/
+coverage_report/
+*.lcov
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Misc
+*.log
+.env
+.env.*
+!.env.example
+
+# Node / VitePress
+node_modules/
+*/.vitepress/dist
+*/.vitepress/cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+temp-docs

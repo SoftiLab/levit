@@ -1,0 +1,44 @@
+{
+    // Version of the setting file.  Always 0.2
+    "version": "0.2",
+    // language - current active spelling language
+    "language": "en",
+    // words - list of words to be always considered correct
+    "words": [
+        "atoumbre",
+        "bluefireteam",
+        "cancelables",
+        "computeds",
+        "entrancy",
+        "gifs",
+        "inited",
+        "Jank",
+        "levit",
+        "lifecycles",
+        "microtask",
+        "pubspec",
+        "Pubspec",
+        "recomputations",
+        "runtimes",
+        "rxdart",
+        "Softi",
+        "sublist",
+        "subosito",
+        "substr",
+        "unwatch",
+        "writeln"
+    ],
+    // flagWords - list of words to be always considered incorrect
+    // This is useful for offensive words and common spelling errors.
+    // For example "hte" should be "the"
+    "flagWords": [],
+    // Dictionaries "Spanish", "ruby", and "corp-term" will always be checked.
+    // Including "Spanish" in the list of dictionaries means both Spanish and English
+    // words will be considered correct.
+    "dictionaries": [],
+    "ignorePaths": [
+        "**/build/**",
+        "**/coverage/**",
+        "**/temp-docs/**"
+    ]
+}

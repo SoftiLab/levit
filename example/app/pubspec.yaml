@@ -1,0 +1,26 @@
+name: nexus_studio_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  levit_flutter:
+    path: ../../packages/levit_flutter
+  shared:
+    path: ../shared
+  web_socket_channel: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  async: ^2.11.0
+  stream_channel: ^2.1.1
+
+flutter:
+  uses-material-design: true

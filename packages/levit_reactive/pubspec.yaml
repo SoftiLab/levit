@@ -1,0 +1,12 @@
+name: levit_reactive
+description: Pure Dart reactive state management primitives. The engine of the Levit framework.
+version: 0.0.1
+repository: https://github.com/softilab/levit
+
+
+environment:
+  sdk: ^3.0.0
+
+dev_dependencies:
+  test: ^1.24.0
+  rxdart: ^0.28.0

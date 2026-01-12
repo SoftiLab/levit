@@ -1,0 +1,9 @@
+name: levit_workspace
+description: Levit monorepo workspace - a modular reactive framework for Flutter.
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+dev_dependencies:
+  melos: ^6.3.0

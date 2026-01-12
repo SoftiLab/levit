@@ -1,0 +1,65 @@
+name: levit
+repository: https://github.com/softilab/levit-framework
+
+packages:
+  - packages/**
+  - example/**
+  - stress_tests
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    run: dart analyze --fatal-infos
+    description: Run static analysis
+    exec:
+      concurrency: 6
+
+  test:
+    run: dart test
+    description: Run pure Dart tests
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: test
+      noDependsOn: flutter
+
+  test:flutter:
+    run: flutter test
+    description: Run Flutter tests
+    exec:
+      concurrency: 1
+    packageFilters:
+      dependsOn: flutter
+      dirExists: test
+      ignore:
+        - levit_stress_tests
+
+  coverage:
+    run: dart run scripts/check_coverage.dart
+    description: Run coverage checks
+
+  stress:
+    run: dart run scripts/stress_test.dart
+    description: Run stress tests
+
+  format:
+    run: dart format .
+    description: Format all Dart code
+    exec:
+      concurrency: 6
+
+  # 1. Generate docs for every package
+  doc:gen:
+    run: dart doc --output=../../temp-docs .
+    exec:
+      # Run this in every package that has a pubspec.yaml and isn't an example
+      concurrency: 1
+      failFast: true
+    packageFilters:
+      scope: 
+        - levit_flutter
+
+

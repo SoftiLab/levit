@@ -1,0 +1,38 @@
+name: Deployment
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Pub.dev
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Melos
+        uses: bluefireteam/melos-action@v3
+
+      - name: Setup Pub Credentials
+        run: |
+          mkdir -p $HOME/.config/dart
+          echo '${{ secrets.PUB_CREDENTIALS }}' > $HOME/.config/dart/pub-credentials.json
+
+      - name: Publish to Pub.dev
+        run: melos publish --no-dry-run --yes
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}

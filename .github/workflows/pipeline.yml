@@ -1,0 +1,36 @@
+# .github/workflows/pipeline.yml
+name: Main Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  # Call Spelling Workflow
+  call-spelling:
+    uses: ./.github/workflows/spelling.yml
+
+  # Call CI Workflow
+  call-ci:
+    uses: ./.github/workflows/checks.yml
+  
+  # Call Coverage Workflow
+  call-coverage:
+    uses: ./.github/workflows/coverage.yml
+    secrets: inherit # Passes CODECOV_TOKEN automatically
+
+
+  # Call Deploy Workflow
+  # call-deploy:
+  #   needs: [call-ci, call-coverage, call-spelling] # WAITS for all to succeed
+  #   # Only run deployment on push to main, not on PRs
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   uses: ./.github/workflows/deploy.yml
+  #   secrets: inherit # Passes PUB_CREDENTIALS automatically
