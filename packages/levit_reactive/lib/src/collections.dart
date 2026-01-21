@@ -2,10 +2,6 @@ import 'dart:math';
 
 import 'base_types.dart';
 
-// ============================================================================
-// LxList<T> - Specialized reactive list
-// ============================================================================
-
 /// A reactive list that notifies observers when modified.
 ///
 /// [LxList] wraps a standard [List] and intercepts mutating methods (like `add`,
@@ -14,7 +10,6 @@ import 'base_types.dart';
 /// Use this collection when you need a list that updates the UI or triggers
 /// effects whenever elements are added, removed, or changed.
 ///
-/// ## Usage
 /// ```dart
 /// final items = <String>[].lx;
 /// items.add('Hello'); // Notifies observers
@@ -31,7 +26,7 @@ class LxList<E> extends LxVal<List<E>> implements List<E> {
     return LxList<E>(List<E>.from(elements));
   }
 
-  // --- List interface implementation ---
+  // List interface implementation
 
   @override
   int get length => value.length;
@@ -156,7 +151,7 @@ class LxList<E> extends LxVal<List<E>> implements List<E> {
     refresh();
   }
 
-  // --- Read-only List methods (delegate to underlying list) ---
+  // Read-only List methods (delegate to underlying list)
 
   @override
   E get first => value.first;
@@ -290,7 +285,7 @@ class LxList<E> extends LxVal<List<E>> implements List<E> {
   @override
   List<R> cast<R>() => value.cast<R>();
 
-  // --- Convenience methods ---
+  // Convenience methods
 
   /// Replaces all elements with [elements] in a single notification.
   ///
@@ -313,10 +308,6 @@ class LxList<E> extends LxVal<List<E>> implements List<E> {
   }
 }
 
-// ============================================================================
-// LxMap<K, V> - Specialized reactive map
-// ============================================================================
-
 /// A reactive map that notifies observers when modified.
 ///
 /// [LxMap] wraps a standard [Map] and intercepts mutating methods to
@@ -325,7 +316,6 @@ class LxList<E> extends LxVal<List<E>> implements List<E> {
 /// Use this collection when you need a map that updates the UI or triggers
 /// effects whenever entries are added, removed, or changed.
 ///
-/// ## Usage
 /// ```dart
 /// final settings = <String, dynamic>{}.lx;
 /// settings['theme'] = 'dark'; // Notifies observers
@@ -342,7 +332,7 @@ class LxMap<K, V> extends LxVal<Map<K, V>> implements Map<K, V> {
     return LxMap<K, V>(Map<K, V>.from(other));
   }
 
-  // --- Map interface implementation ---
+  // Map interface implementation
 
   @override
   V? operator [](Object? key) => value[key];
@@ -405,7 +395,7 @@ class LxMap<K, V> extends LxVal<Map<K, V>> implements Map<K, V> {
     return result;
   }
 
-  // --- Read-only Map methods (delegate to underlying map) ---
+  // Read-only Map methods (delegate to underlying map)
 
   @override
   bool containsKey(Object? key) => value.containsKey(key);
@@ -442,7 +432,7 @@ class LxMap<K, V> extends LxVal<Map<K, V>> implements Map<K, V> {
   @override
   Map<RK, RV> cast<RK, RV>() => value.cast<RK, RV>();
 
-  // --- Convenience methods ---
+  // Convenience methods
 
   /// Replaces all entries with [other] in a single notification.
   ///
@@ -454,10 +444,6 @@ class LxMap<K, V> extends LxVal<Map<K, V>> implements Map<K, V> {
     refresh();
   }
 }
-
-// ============================================================================
-// LxSet<E> - Specialized reactive set
-// ============================================================================
 
 /// A reactive set that notifies observers when modified.
 ///
@@ -478,7 +464,7 @@ class LxSet<E> extends LxVal<Set<E>> implements Set<E> {
     return LxSet<E>(Set<E>.from(elements));
   }
 
-  // --- Set interface implementation ---
+  // Set interface implementation
 
   @override
   bool add(E value) {
@@ -530,7 +516,7 @@ class LxSet<E> extends LxVal<Set<E>> implements Set<E> {
     refresh();
   }
 
-  // --- Read-only Set methods (delegate to underlying set) ---
+  // Read-only Set methods (delegate to underlying set)
 
   @override
   bool contains(Object? value) => this.value.contains(value);
@@ -641,7 +627,7 @@ class LxSet<E> extends LxVal<Set<E>> implements Set<E> {
   @override
   Set<R> cast<R>() => value.cast<R>();
 
-  // --- Convenience methods ---
+  // Convenience methods
 
   /// Replaces all elements with [elements] in a single notification.
   ///
@@ -663,10 +649,6 @@ class LxSet<E> extends LxVal<Set<E>> implements Set<E> {
     refresh();
   }
 }
-
-// ============================================================================
-// Extensions -  .lx syntax
-// ============================================================================
 
 /// Extension to create [LxList].
 extension LxListExtension<E> on List<E> {

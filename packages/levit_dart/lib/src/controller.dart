@@ -1,16 +1,11 @@
 part of '../levit_dart.dart';
 
-// ============================================================================
-// LevitController - Pure Dart Controller Base
-// ============================================================================
-
 /// A base class for business logic components with automated resource management.
 ///
 /// [LevitController] provides a structured environment for managing the lifecycle
 /// of your application's logic. It implements [LevitScopeDisposable] to integrate
 /// seamlessly with the [Levit] dependency injection system.
 ///
-/// ### Architecture Summary
 /// The main purpose of a controller is to centralize logic and ensure that
 /// resources (like streams, timers, or reactive variables) are cleaned up as
 /// soon as the controller is no longer needed.

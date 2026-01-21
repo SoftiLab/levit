@@ -1,9 +1,5 @@
 part of '../levit_dart.dart';
 
-// ---------------------------------------------------------------------------
-// Put Extensions
-// ---------------------------------------------------------------------------
-
 /// Fluent API extensions for immediate dependency registration.
 extension LevitPutExtension<T> on T {
   /// Registers this instance immediately in the active [LevitScope].

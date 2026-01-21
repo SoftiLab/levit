@@ -62,7 +62,6 @@ class EditorPage extends StatelessWidget {
                 const GridBackground(),
 
                 // Canvas Interaction Layer
-                // Canvas Interaction Layer
                 MouseRegion(
                   onHover: (event) {
                     Levit.find<PresenceController>().updateLocalCursor(

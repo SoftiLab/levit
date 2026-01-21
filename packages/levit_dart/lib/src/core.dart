@@ -1,16 +1,11 @@
 part of '../levit_dart.dart';
 
-// ============================================================================
-// Levit - Static Accessor
-// ============================================================================
-
 /// The primary entry point for managing dependencies and scopes in Levit.
 ///
 /// [Levit] provides a unified, static interface for interacting with the
 /// dependency injection (DI) system. It simplifies access to the current
 /// [LevitScope] by using [Zone]-based implicit propagation.
 ///
-/// ### Architecture Summary
 /// In a Levit application, dependencies are stored within a [LevitScope].
 /// By default, [Levit] operations target the root scope. However, when code
 /// is executed within a nested scope using [LevitScope.run], this class
@@ -162,10 +157,6 @@ class Levit {
   /// A list of all registration keys (type + tag) in the current active scope.
   static List<String> get registeredKeys => _currentScope.registeredKeys;
 
-  // --------------------------------------------------------------------------
-  // Middleware Management
-  // --------------------------------------------------------------------------
-
   /// Adds a global middleware for receiving dependency injection events.
   static void addDependencyMiddleware(LevitScopeMiddleware middleware) {
     LevitScope.addMiddleware(middleware);
@@ -176,11 +167,13 @@ class Levit {
     LevitScope.removeMiddleware(middleware);
   }
 
+  /// Adds a middleware to the list of active middlewares.
   static void addStateMiddleware(LevitMiddleware middleware) {
     _middlewares.add(middleware);
     Lx.addMiddleware(middleware);
   }
 
+  /// Removes a middleware from the list of active middlewares.
   static void removeStateMiddleware(LevitMiddleware middleware) {
     _middlewares.remove(middleware);
     Lx.removeMiddleware(middleware);
@@ -214,6 +207,7 @@ class Levit {
 
   static final Object _captureKey = Object();
 
+  /// The key used to capture reactive objects in the current [Zone].
   @visibleForTesting
   static Object get captureKey => _captureKey;
 
@@ -364,15 +358,6 @@ void Function() _createCaptureHookInit<S>(
       Levit._activeCaptureScopes--;
       rethrow;
     }
-
-    // For non-controllers, we still need to process the list after execution
-    // (though for sync init it's mostly redundant if we used live capture, but logic differs)
-    // if (instance is! LevitController) {
-    //   // _processInstance(instance, captured, key);
-    // } else {
-    //   // For controllers, we might want to log or double check,
-    //   // but LiveCapture has already done the work.
-    // }
   };
 }
 

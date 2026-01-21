@@ -18,7 +18,6 @@ import 'package:levit_flutter/src/scope.dart';
 /// Use this class as the base for your screens or complex widgets that map
 /// 1:1 with a controller.
 ///
-/// ## Usage
 /// ```dart
 /// class CounterPage extends LView<CounterController> {
 ///   const CounterPage({super.key});

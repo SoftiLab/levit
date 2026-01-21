@@ -6,10 +6,6 @@ import 'global_accessor.dart';
 import 'middlewares.dart';
 import 'async_status.dart';
 
-// ============================================================================
-// LxComputed<T> - Computed Reactive Value
-// ============================================================================
-
 /// A synchronous computed reactive value that tracks dependencies automatically.
 ///
 /// Computed values are memoized and lazy. They only re-evaluate when their
@@ -18,7 +14,6 @@ import 'async_status.dart';
 /// Use [LxComputed] to derive state from other reactive variables without
 /// manually managing subscriptions.
 ///
-/// ## Usage
 /// ```dart
 /// final count = 0.lx;
 /// final doubled = LxComputed(() => count.value * 2);
@@ -262,7 +257,6 @@ class LxComputed<T> extends _ComputedBase<LxStatus<T>> {
 /// Wraps the result in an [LxStatus]. Like [LxComputed], it tracks
 /// dependencies automatically, even across async gaps.
 ///
-/// ## Usage
 /// ```dart
 /// final userId = 1.lx;
 /// final user = LxComputed.async(() => fetchUser(userId.value));
@@ -576,10 +570,6 @@ abstract class _ComputedBase<Val> extends LxBase<Val> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Helper Classes
-// ---------------------------------------------------------------------------
-
 /// Captures all dependencies into a set (for Sync Computed).
 class _DependencyTracker implements LevitStateObserver {
   // Hybrid storage: Use List for small N, Set for large N.
@@ -657,9 +647,6 @@ class _AsyncLiveTracker implements LevitStateObserver {
     if (trackReactives && _isCurrent) reactives.add(reactive);
   }
 }
-// ---------------------------------------------------------------------------
-// Static Zone Specification for Async Tracking
-// ---------------------------------------------------------------------------
 
 // Top-level handlers to avoid closure allocation on each async computed run
 R _asyncRunHandler<R>(
@@ -716,10 +703,6 @@ final ZoneSpecification _staticAsyncZoneSpec = ZoneSpecification(
 /// Returns the static async zone specification.
 /// Kept as a function for API compatibility.
 ZoneSpecification _asyncZoneSpec() => _staticAsyncZoneSpec;
-
-// =============================================================================
-// Extensions
-// =============================================================================
 
 /// Extension to create [LxComputed] from a synchronous function.
 extension LxFunctionExtension<T> on T Function() {

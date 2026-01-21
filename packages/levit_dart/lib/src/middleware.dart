@@ -1,9 +1,5 @@
 part of '../levit_dart.dart';
 
-// ============================================================================
-// LevitMiddleware - Unified Middleware System
-// ============================================================================
-
 /// A unified base class for Levit middlewares.
 ///
 /// [LevitMiddleware] combines the capabilities of [LevitStateMiddleware] (for reactive

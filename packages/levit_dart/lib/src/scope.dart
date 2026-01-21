@@ -1,9 +1,5 @@
 part of '../levit_dart.dart';
 
-// ============================================================================
-// LevitScope - Extension for implicit scoping
-// ============================================================================
-
 /// Implicit scoping extensions for [LevitScope].
 extension LevitScopeImplicitScopeExtension on LevitScope {
   /// Executes the [callback] within a [Zone] where this scope is active.
