@@ -721,11 +721,13 @@ abstract class LxBase<T> extends LevitStateNotifier implements LxReactive<T> {
   void close() {
     if (LevitStateMiddleware.bypassMiddleware ||
         !LevitStateMiddleware.hasDisposeMiddlewares) {
+      unbind();
       _controller?.close();
       super.dispose();
       _checkActive();
     } else {
       final wrapped = LevitStateMiddlewareChain.applyOnDispose(() {
+        unbind();
         _controller?.close();
         super.dispose();
         _checkActive();

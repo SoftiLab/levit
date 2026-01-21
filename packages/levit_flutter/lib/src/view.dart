@@ -63,36 +63,35 @@ abstract class LView<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     // Resolve controller using the optimized path (avoiding LevitContext allocation)
     final T controller;
-    try {
-      final scope = LScope.of(context);
-      if (scope != null) {
-        final instance = scope.findOrNull<T>(tag: tag);
-        if (instance != null) {
-          controller = instance;
-        } else {
-          controller = scope.put<T>(() {
-            final created = createController();
-            if (created == null) throw '_LVIEW_NULL_FACTORY_';
-            return created;
-          }, tag: tag, permanent: permanent);
-        }
+    final scope = LScope.of(context);
+    if (scope != null) {
+      final instance = scope.findOrNull<T>(tag: tag);
+      if (instance != null) {
+        controller = instance;
       } else {
-        final instance = Levit.findOrNull<T>(tag: tag);
-        if (instance != null) {
-          controller = instance;
-        } else {
-          controller = Levit.put<T>(() {
-            final created = createController();
-            if (created == null) throw '_LVIEW_NULL_FACTORY_';
-            return created;
-          }, tag: tag, permanent: permanent);
-        }
+        controller = scope.put<T>(() {
+          final created = createController();
+          if (created == null) {
+            throw StateError(
+                'LView: Controller $T not found and createController() returned null.');
+          }
+          return created;
+        }, tag: tag, permanent: permanent);
       }
-    } catch (e) {
-      if (e.toString().contains('_LVIEW_NULL_FACTORY_')) {
-        throw 'LView: Controller $T not found and createController() returned null.';
+    } else {
+      final instance = Levit.findOrNull<T>(tag: tag);
+      if (instance != null) {
+        controller = instance;
+      } else {
+        controller = Levit.put<T>(() {
+          final created = createController();
+          if (created == null) {
+            throw StateError(
+                'LView: Controller $T not found and createController() returned null.');
+          }
+          return created;
+        }, tag: tag, permanent: permanent);
       }
-      rethrow;
     }
 
     if (autoWatch) {
@@ -138,23 +137,14 @@ abstract class LState<W extends LStatefulView<T>, T> extends State<W> {
       return context.levit.find<T>(tag: widget.tag);
     }
 
-    try {
-      return context.levit.put<T>(() {
-        final created = widget.createController();
-        if (created == null) {
-          throw 'LStatefulView: Controller $T not found and createController() returned null.';
-        }
-        return created;
-      }, tag: widget.tag, permanent: widget.permanent);
-    } catch (e) {
-      // If the exception is not the one we threw, rethrow it.
-      // Otherwise, it's already the correct message.
-      if (!e.toString().contains(
-          'LStatefulView: Controller $T not found and createController() returned null.')) {
-        rethrow;
+    return context.levit.put<T>(() {
+      final created = widget.createController();
+      if (created == null) {
+        throw StateError(
+            'LStatefulView: Controller $T not found and createController() returned null.');
       }
-      throw e; // Re-throw the specific message we generated
-    }
+      return created;
+    }, tag: widget.tag, permanent: widget.permanent);
   }
 
   /// Called immediately after [initState].
