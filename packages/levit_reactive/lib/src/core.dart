@@ -5,29 +5,13 @@ import 'package:meta/meta.dart';
 import 'middlewares.dart';
 import 'watchers.dart';
 
-// ============================================================================
-// Global Reactive Configuration
-// ============================================================================
-
 @internal
 class LevitSateCore {
-// --------------------------------------------------------------------------
-// Configuration
-// --------------------------------------------------------------------------
-
   /// Whether to capture stack traces on state changes (expensive).
   static bool captureStackTrace = false;
 
-// --------------------------------------------------------------------------
-// Internal State
-// --------------------------------------------------------------------------
-
   /// The active observer capturing dependencies.
   static LevitStateObserver? proxy;
-
-// --------------------------------------------------------------------------
-// Batching
-// --------------------------------------------------------------------------
 
   static final Object _batchEntriesKey = Object();
 
@@ -367,7 +351,7 @@ class LevitStateNotifier {
     }
   }
 
-  /// Notifies all listeners...
+  /// Notifies all listeners of a change.
   void notify() {
     if (_disposed) return;
 
@@ -468,10 +452,6 @@ class LevitStateNotifier {
   }
 }
 
-// ============================================================================
-// LxBase<T> - The Core Reactive Primitive
-// ============================================================================
-
 /// A reactive wrapper for a value of type [T].
 ///
 /// [LxBase] is the core primitive of Levit's reactive system. It notifies
@@ -490,16 +470,6 @@ class LevitStateNotifier {
 ///
 /// count.value++; // Notifies observers
 /// ```
-/// Shared behavior for reactive variables.
-///
-/// Implements the core logic for value storage, notification, stream binding,
-/// and middleware hooks.
-///
-/// Used by [LxBase] and [LxWatch].
-/// Base class for reactive variables.
-///
-/// Contains shared logic for value storage, notification, stream binding,
-/// and middleware hooks.
 abstract class LxBase<T> extends LevitStateNotifier implements LxReactive<T> {
   static int _nextId = 0;
 
@@ -529,7 +499,6 @@ abstract class LxBase<T> extends LevitStateNotifier implements LxReactive<T> {
   String? name;
 
   /// Creates a reactive wrapper around [initial].
-
   LxBase(T initial, {this.onListen, this.onCancel, this.name})
       : _value = initial {
     if (LevitStateMiddleware.hasInitMiddlewares) {
@@ -818,14 +787,6 @@ abstract class LxBase<T> extends LevitStateNotifier implements LxReactive<T> {
 
   @override
   String toString() => _value.toString();
-
-  // Note: Using Object.== (identity-based) for correct Map/Set behavior.
-  // Previously overrode to compare _value but that caused identity collisions
-  // in LWatch and other parts of the system. Use .value for comparison.
-
-  // Note: Using Object.hashCode (identity-based) for correct Map/Set behavior.
-  // Previously overrode to _value.hashCode but that caused identity collisions
-  // when two reactive variables had the same value.
 
   /// Whether the reactive object has been closed/disposed.
   @override

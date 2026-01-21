@@ -28,11 +28,11 @@ class LWatchElement extends ComponentElement implements LevitStateObserver {
     rebuild();
   }
 
-  // ===== Fast path for single notifier (most common case) =====
+  // Fast path for single notifier (most common case)
   LevitStateNotifier? _singleNotifier;
   bool _usingSinglePath = false;
 
-  // ===== Slow path for multiple dependencies =====
+  // Slow path for multiple dependencies
   Map<Stream, StreamSubscription>? _subscriptions;
   Map<LevitStateNotifier, void Function()>? _notifiers;
 

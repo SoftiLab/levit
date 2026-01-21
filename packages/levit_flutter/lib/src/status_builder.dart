@@ -11,8 +11,6 @@ import 'watch.dart';
 ///
 /// Under the hood, it uses [LWatch] to automatically listen for status changes.
 ///
-/// ## Usage
-///
 /// ```dart
 /// // 1. From an existing reactive source (default)
 /// LStatusBuilder(
@@ -39,14 +37,25 @@ class LStatusBuilder<T> extends StatefulWidget {
   final Future<T> Function()? _asyncCompute;
   final T? _initialValue;
 
+  /// Builder for success state.
   final Widget Function(T data) onSuccess;
+
+  /// Builder for waiting/loading state.
   final Widget Function()? onWaiting;
 
   /// Builder for error state.
   final Widget Function(Object error, StackTrace? stackTrace)? onError;
+
+  /// Builder for idle state (initial state before loading).
   final Widget Function()? onIdle;
 
   /// Creates a status builder from an existing reactive source.
+  ///
+  /// * [source]: The reactive variable holding the status.
+  /// * [onSuccess]: Builder called when status is [LxSuccess].
+  /// * [onWaiting]: Builder called when status is [LxWaiting].
+  /// * [onError]: Builder called when status is [LxError].
+  /// * [onIdle]: Builder called when status is [LxIdle].
   const LStatusBuilder({
     super.key,
     required LxReactive<LxStatus<T>> source,
@@ -61,6 +70,10 @@ class LStatusBuilder<T> extends StatefulWidget {
         _initialValue = null;
 
   /// Creates a status builder that manages an [LxFuture].
+  ///
+  /// * [future]: The factory function to create the future.
+  /// * [onSuccess]: Builder called when the future completes with a value.
+  /// * [initial]: Optional initial value.
   const LStatusBuilder.future({
     super.key,
     required Future<T> Function() future,
@@ -76,6 +89,10 @@ class LStatusBuilder<T> extends StatefulWidget {
         onIdle = null; // internal future starts immediately managed
 
   /// Creates a status builder that manages an [LxStream].
+  ///
+  /// * [stream]: The stream to listen to.
+  /// * [onSuccess]: Builder called when the stream emits a value.
+  /// * [initial]: Optional initial value.
   const LStatusBuilder.stream({
     super.key,
     required Stream<T> stream,
@@ -91,6 +108,9 @@ class LStatusBuilder<T> extends StatefulWidget {
         onIdle = null;
 
   /// Creates a status builder from an asynchronous computation.
+  ///
+  /// * [compute]: The async computation function.
+  /// * [onSuccess]: Builder called when the computation completes.
   const LStatusBuilder.computed({
     super.key,
     required Future<T> Function() compute,

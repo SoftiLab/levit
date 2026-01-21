@@ -3,10 +3,6 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 import 'middleware.dart';
 
-// ============================================================================
-// Disposable Interface
-// ============================================================================
-
 /// Interface for objects that require lifecycle management.
 ///
 /// Implement this interface in your controllers or services to receive callbacks
@@ -22,10 +18,13 @@ abstract class LevitScopeDisposable {
   /// starting listeners.
   void onInit() {}
 
-  /// [scope] is the [LevitScope] that created/owns this object.
-  /// [key] is the registration key (e.g. "MyController" or "MyController_tag").
+  /// Called when the instance is attached to a [LevitScope].
+  ///
   /// Override this method to receive a reference to your scope, or to perform
   /// post-resolution setup that requires scope access.
+  ///
+  /// * [scope]: The [LevitScope] that created/owns this object.
+  /// * [key]: The registration key (e.g. "MyController" or "MyController_tag").
   ///
   /// Note: This is called AFTER [onInit] completes.
   void didAttachToScope(LevitScope scope, {String? key}) {}
@@ -37,10 +36,6 @@ abstract class LevitScopeDisposable {
   /// of other resources.
   void onClose() {}
 }
-
-// ============================================================================
-// Instance Info
-// ============================================================================
 
 /// Holds metadata about a registered dependency instance.
 ///
@@ -86,10 +81,6 @@ class LevitBindingEntry<S> {
   });
 }
 
-// ============================================================================
-// LevitScope - Scoped Container
-// ============================================================================
-
 /// A scoped dependency injection container.
 ///
 /// [LevitScope] manages a registry of dependencies. Scopes can be nested;
@@ -125,10 +116,6 @@ class LevitScope {
 
   /// Creates a new root [LevitScope].
   factory LevitScope.root([String? name]) => LevitScope._(name ?? 'root');
-
-  // --------------------------------------------------------------------------
-  // Registration
-  // --------------------------------------------------------------------------
 
   /// Registers a dependency instance in this scope.
   ///
@@ -229,10 +216,6 @@ class LevitScope {
     _registerBinding(key, info, isFactory ? 'putFactoryAsync' : 'lazyPutAsync');
   }
 
-  // --------------------------------------------------------------------------
-  // Registration Helpers
-  // --------------------------------------------------------------------------
-
   void _registerBinding<S>(
     String key,
     LevitBindingEntry<S> info,
@@ -256,10 +239,6 @@ class LevitScope {
 
     _notifyRegister(key, info, source);
   }
-
-  // --------------------------------------------------------------------------
-  // Retrieval
-  // --------------------------------------------------------------------------
 
   /// Finds and returns the registered instance of type [S].
   ///
@@ -532,10 +511,6 @@ class LevitScope {
     return false;
   }
 
-  // --------------------------------------------------------------------------
-  // Deletion
-  // --------------------------------------------------------------------------
-
   /// Deletes an instance of type [S] from this scope.
   ///
   /// Returns `true` if the instance was successfully deleted.
@@ -593,20 +568,12 @@ class LevitScope {
     }
   }
 
-  // --------------------------------------------------------------------------
-  // Nested Scopes
-  // --------------------------------------------------------------------------
-
   /// Creates a new child scope that falls back to this scope for dependency resolution.
   ///
   /// *   [name]: The name of the new scope.
   LevitScope createScope(String name) {
     return LevitScope._(name, parentScope: this);
   }
-
-  // --------------------------------------------------------------------------
-  // Helpers
-  // --------------------------------------------------------------------------
 
   static final Map<Type, String> _typeCache = {};
 
@@ -626,10 +593,6 @@ class LevitScope {
   @override
   String toString() =>
       'LevitScope($name, ${_registry.length} local registrations)';
-
-  // --------------------------------------------------------------------------
-  // Observers
-  // --------------------------------------------------------------------------
 
   // Middleware System
   static final List<LevitScopeMiddleware> _middlewares = [];
@@ -681,10 +644,6 @@ class LevitScope {
     wrapped();
   }
 }
-
-// ----------------------------------------------------------------------------
-// Internal: Observer Chain Applicator
-// ----------------------------------------------------------------------------
 
 /// Internal helper to apply observer hooks in a single place.
 ///

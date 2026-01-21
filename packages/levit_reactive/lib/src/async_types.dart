@@ -3,10 +3,6 @@ import 'dart:async';
 import 'async_status.dart';
 import 'core.dart';
 
-// ============================================================================
-// LxStream<T>
-// ============================================================================
-
 /// A reactive wrapper for a [Stream].
 ///
 /// [LxStream] listens to a stream and tracks its state using [LxStatus].
@@ -16,8 +12,6 @@ import 'core.dart';
 ///
 /// Use this class to treat a stream as a reactive variable that can be observed
 /// in the UI.
-/// in the UI.
-/// A reactive wrapper for a [Stream].
 class LxStream<T> extends _LxAsyncVal<T> {
   /// The bound stream (wrapped for lazy subscription).
   Stream<T>? _boundSourceStream;
@@ -66,9 +60,7 @@ class LxStream<T> extends _LxAsyncVal<T> {
         this.stream.where((s) => s.hasValue).map((s) => s.valueOrNull as T);
   }
 
-  // ---------------------------------------------------------------------------
   // Access (inherited from LxBase)
-  // ---------------------------------------------------------------------------
 
   /// The current [LxStatus] of the stream.
   LxStatus<T> get status => value;
@@ -81,9 +73,7 @@ class LxStream<T> extends _LxAsyncVal<T> {
     return _boundSourceStream!;
   }
 
-  // ---------------------------------------------------------------------------
   // Actions
-  // ---------------------------------------------------------------------------
 
   /// Binds to a new stream, replacing the current one.
   @override
@@ -103,9 +93,7 @@ class LxStream<T> extends _LxAsyncVal<T> {
     _boundSourceStream = null;
   }
 
-  // ---------------------------------------------------------------------------
   // Listener API
-  // ---------------------------------------------------------------------------
 
   /// Closes the [LxStream].
   ///
@@ -119,9 +107,7 @@ class LxStream<T> extends _LxAsyncVal<T> {
   @override
   String toString() => 'LxStream($status)';
 
-  // ---------------------------------------------------------------------------
   // Transformations
-  // ---------------------------------------------------------------------------
 
   /// Transforms each element of this stream into a new stream event.
   LxStream<R> map<R>(R Function(T event) convert) {
@@ -149,9 +135,7 @@ class LxStream<T> extends _LxAsyncVal<T> {
     return LxStream<T>(valueStream.distinct(equals));
   }
 
-  // ---------------------------------------------------------------------------
   // Reductions (returning LxFuture)
-  // ---------------------------------------------------------------------------
 
   /// Combines a sequence of values by repeatedly applying [combine].
   LxFuture<T> reduce(T Function(T previous, T element) combine) {
@@ -166,10 +150,6 @@ class LxStream<T> extends _LxAsyncVal<T> {
   }
 }
 
-// ============================================================================
-// LxFuture<T>
-// ============================================================================
-
 /// A reactive wrapper for a [Future].
 ///
 /// [LxFuture] executes a future and tracks its state using [LxStatus]
@@ -178,7 +158,6 @@ class LxStream<T> extends _LxAsyncVal<T> {
 /// there are active listeners.
 ///
 /// Use this class to easily display the state of an asynchronous operation in
-/// your UI (e.g., showing a loading spinner while fetching data).
 /// your UI (e.g., showing a loading spinner while fetching data).
 class LxFuture<T> extends _LxAsyncVal<T> {
   /// Creates an [LxFuture] that immediately executes the given [future].
@@ -234,9 +213,7 @@ class LxFuture<T> extends _LxAsyncVal<T> {
     });
   }
 
-  // ---------------------------------------------------------------------------
   // Access
-  // ---------------------------------------------------------------------------
 
   /// The current [LxStatus] of the future.
   ///
@@ -275,9 +252,7 @@ class LxFuture<T> extends _LxAsyncVal<T> {
         'LxFuture is idle. Call restart() to start execution or wait until it is not idle.');
   }
 
-  // ---------------------------------------------------------------------------
   // Actions
-  // ---------------------------------------------------------------------------
 
   /// Refreshes the state with a new future.
   ///
@@ -286,9 +261,7 @@ class LxFuture<T> extends _LxAsyncVal<T> {
   /// Renamed from `refresh` to prevent conflict with [LxBase.refresh].
   void restart(Future<T> future) => _run(future, isRefresh: true);
 
-  // ---------------------------------------------------------------------------
   // Listener API
-  // ---------------------------------------------------------------------------
 
   /// Add a listener that will be called on every status change.
   @override
@@ -320,10 +293,6 @@ class LxFuture<T> extends _LxAsyncVal<T> {
   LxStream<T> get asLxStream => LxStream<T>(wait.asStream());
 }
 
-// ============================================================================
-// _LxAsyncVal<T>
-// ============================================================================
-
 /// Shared base class for asynchronous reactive values.
 abstract class _LxAsyncVal<T> extends LxBase<LxStatus<T>> {
   _LxAsyncVal(LxStatus<T> initialValue,
@@ -344,10 +313,6 @@ abstract class _LxAsyncVal<T> extends LxBase<LxStatus<T>> {
     return LxStream<R>(transformer(stream));
   }
 }
-
-// ============================================================================
-// Extensions
-// ============================================================================
 
 /// Extension for creating [LxStream] from a [Stream].
 extension LxStreamExtension<T> on Stream<T> {
