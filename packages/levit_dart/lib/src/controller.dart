@@ -128,16 +128,25 @@ abstract class LevitController implements LevitScopeDisposable {
 
     // 2. The "Cancel" Group (Async tasks)
     // Most common: StreamSubscription, Timer
+    if (item is StreamSubscription) {
+      item.cancel();
+      return;
+    }
+    if (item is Timer) {
+      item.cancel();
+      return;
+    }
+
     try {
-      if (item is StreamSubscription) {
-        item.cancel();
-        return;
-      }
-      // Duck typing for other cancelables (like Timer or CancelableOperation)
+      // Duck typing for other cancelables (like CancelableOperation)
       (item as dynamic).cancel();
       return;
     } on NoSuchMethodError {
       // Not cancelable, fall through
+    } catch (e) {
+      // Prevent crash during cleanup
+      dev.log('LevitController: Error cancelling ${item.runtimeType}',
+          error: e, name: 'levit_dart');
     }
 
     // 3. The "Dispose" Group (Flutter Controllers)
@@ -147,15 +156,26 @@ abstract class LevitController implements LevitScopeDisposable {
       return;
     } on NoSuchMethodError {
       // Not disposable, fall through
+    } catch (e) {
+      dev.log('LevitController: Error disposing ${item.runtimeType}',
+          error: e, name: 'levit_dart');
     }
 
     // 4. The "Close" Group (Sinks, BLoCs, IO)
     // Most common: StreamController, Sink, Bloc
+    if (item is Sink) {
+      item.close();
+      return;
+    }
+
     try {
       (item as dynamic).close();
       return;
     } on NoSuchMethodError {
       // Not closeable, fall through
+    } catch (e) {
+      dev.log('LevitController: Error closing ${item.runtimeType}',
+          error: e, name: 'levit_dart');
     }
 
     // 5. The "Callable" Group (Cleanup Callbacks)
