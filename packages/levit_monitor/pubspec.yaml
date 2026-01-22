@@ -1,5 +1,5 @@
 name: levit_monitor
-description: A monitoring package for Levit applications.
+description: A unified observability and diagnostics engine for the Levit ecosystem.
 repository: https://github.com/softilab/levit
 version: 0.0.4
 
