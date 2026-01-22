@@ -35,10 +35,8 @@ jobs:
         id: run_pana
         run: |
           cd packages/${{ matrix.package }}
-          # We run pana and capture JSON output. 
-          # Some logs might go to stdout, so we try to extract the JSON part if needed,
-          # but usually --format json prints ONLY json to stdout.
-          pana --format json . > pana_output.json
+          # Use --json flag and run via dart pub global run for better environment compatibility
+          dart pub global run pana --json . > pana_output.json
           
       - name: Check Pana Score
         run: |
