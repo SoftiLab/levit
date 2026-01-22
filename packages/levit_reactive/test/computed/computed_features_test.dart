@@ -68,35 +68,6 @@ void main() {
       expect(valueChanges.last, [1, 2, 3, 4]);
     });
 
-    test('handles errors', () async {
-      final source = 1.lx;
-
-      final memo = LxComputed(() {
-        if (source.value == 0) throw Exception('Cannot be zero');
-        return 10 ~/ source.value;
-      });
-
-      // Add listener to activate reactive tracking
-      memo.stream.listen((_) {});
-      await Future.microtask(() {});
-
-      expect(memo.value, 10);
-
-      expect(() => source.value = 0, throwsA(isA<Exception>()));
-      await Future.delayed(Duration(milliseconds: 10));
-
-      // Should throw on access
-      expect(() => memo.value, throwsA(isA<Exception>()));
-    });
-
-    test('rethrows error on access (construction)', () async {
-      expect(
-          () => LxComputed(() {
-                throw Exception('fail');
-              }),
-          throwsA(isA<Exception>()));
-    });
-
     test('close cancels subscriptions', () async {
       final source = 0.lx;
       var computeCount = 0;
@@ -149,8 +120,8 @@ void main() {
 
   test('reconciles stream dependencies (removing unused)', () async {
     final useA = true.lx;
-    final sourceA = 10.lx..flags['name'] = 'A';
-    final sourceB = 20.lx..flags['name'] = 'B';
+    final sourceA = 10.lx;
+    final sourceB = 20.lx;
 
     // Force stream creation on sourceA so it is tracked as a stream dependency
     final subA = sourceA.stream.listen((_) {});

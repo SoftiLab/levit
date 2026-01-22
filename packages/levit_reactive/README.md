@@ -4,7 +4,7 @@
 [![Pub Version](https://img.shields.io/pub/v/levit_reactive)](https://pub.dev/packages/levit_reactive)
 [![Platforms](https://img.shields.io/badge/platforms-dart-blue)](https://pub.dev/packages/levit_reactive)
 [![License: MIT](https://img.shields.io/badge/license-MIT-purple.svg)](https://opensource.org/licenses/MIT)
-[![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg\&flag=levit_reactive)](https://codecov.io/github/atoumbre/levit?flags=levit_reactive)
+[![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg\&flag=levit_reactive)](https://codecov.io/github/atoumbre/levit?flags=levit_reactive)
 
 **A pure Dart reactive engine. Deterministic. Fine-grained. Dependency-free.**
 
@@ -26,7 +26,7 @@ It is intentionally framework-agnostic and can be used as a standalone reactive 
   Only the exact dependencies accessed during evaluation are tracked and recomputed.
 
 * **First-Class Async State**
-  Futures and Streams are modeled as reactive state via `AsyncStatus` (Idle, Waiting, Success, Error).
+  Futures and Streams are modeled as reactive state via `LxStatus` (Idle, Waiting, Success, Error).
 
 * **Deterministic Computed Values**
   Computeds are lazy, cached, and recompute only when their dependencies change.
@@ -101,13 +101,13 @@ print(fullName.value); // Jane Doe
 final userState = LxFuture(fetchUserById(123));
 
 switch (userState.status) {
-  case AsyncWaiting():
+  case LxWaiting():
     print('Loading...');
-  case AsyncSuccess(:final value):
+  case LxSuccess(:final value):
     print('User loaded: ${value.name}');
-  case AsyncError(:final error):
+  case LxError(:final error):
     print('Failed: $error');
-  case AsyncIdle():
+  case LxIdle():
     print('Not started');
 }
 

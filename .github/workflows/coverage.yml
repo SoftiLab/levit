@@ -46,12 +46,6 @@ jobs:
              echo "No coverage files found to merge."
            fi
            
-      - name: Publish Test Report
-        if: always()
-        run: |
-           if [ -f "assets/reports/packages_test_coverage.md" ]; then
-             cat assets/reports/packages_test_coverage.md >> $GITHUB_STEP_SUMMARY
-           fi
           
       # Upload INDIVIDUAL reports with flags to support separate badges
       - name: Upload levit_dart Coverage
@@ -62,12 +56,12 @@ jobs:
            flags: levit_dart
            token: ${{ secrets.CODECOV_TOKEN }}
            
-      - name: Upload levit_di Coverage
+      - name: Upload levit_scope Coverage
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_di/coverage/lcov.info
-           flags: levit_di
+           files: packages/levit_scope/coverage/lcov.info
+           flags: levit_scope
            token: ${{ secrets.CODECOV_TOKEN }}
            
       - name: Upload levit_reactive Coverage
@@ -84,4 +78,12 @@ jobs:
         with:
            files: packages/levit_flutter/coverage/lcov.info
            flags: levit_flutter
+           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload levit_monitor Coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+           files: packages/levit_monitor/coverage/lcov.info
+           flags: levit_monitor
            token: ${{ secrets.CODECOV_TOKEN }}

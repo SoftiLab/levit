@@ -1,37 +1,32 @@
 import 'dart:math';
+import 'base_types.dart';
 
-import 'core.dart';
-
-// ============================================================================
-// LxList<T>
-// ============================================================================
-
-/// A reactive list that notifies observers when modified.
+/// A reactive list that automatically notifies observers when its contents change.
 ///
-/// [LxList] wraps a standard [List] and intercepts mutating methods (like `add`,
-/// `remove`, `[]=` etc.) to automatically trigger notifications.
+/// [LxList] implements the standard Dart [List] interface but intercepts all
+/// mutating operations (like [add], [remove], and the index operator `[]=`)
+/// to trigger notifications.
 ///
-/// Use this collection when you need a list that updates the UI or triggers
-/// effects whenever elements are added, removed, or changed.
-///
-/// ## Usage
+/// ### Usage
 /// ```dart
 /// final items = <String>[].lx;
-/// items.add('Hello'); // Notifies observers
+/// items.add('First'); // Automatically notifies observers
 /// ```
-class LxList<E> extends Lx<List<E>> implements List<E> {
+///
+/// ### Performance Tip
+/// For bulk operations, use [Lx.batch] to group multiple mutations into a
+/// single notification cycle.
+class LxList<E> extends LxVar<List<E>> implements List<E> {
   /// Creates a reactive list.
   ///
   /// If [initial] is provided, it is used as the backing list.
   /// Otherwise, an empty list is created.
-  LxList([List<E>? initial]) : super(initial ?? <E>[]);
+  LxList([List<E>? initial, String? name]) : super(initial ?? <E>[]);
 
-  /// Creates an [LxList] containing all [elements].
+  /// Creates an [LxList] from an existing [Iterable].
   factory LxList.from(Iterable<E> elements) {
     return LxList<E>(List<E>.from(elements));
   }
-
-  // --- List interface implementation ---
 
   @override
   int get length => value.length;
@@ -155,8 +150,6 @@ class LxList<E> extends Lx<List<E>> implements List<E> {
     value.replaceRange(start, end, newContents);
     refresh();
   }
-
-  // --- Read-only List methods (delegate to underlying list) ---
 
   @override
   E get first => value.first;
@@ -290,11 +283,7 @@ class LxList<E> extends Lx<List<E>> implements List<E> {
   @override
   List<R> cast<R>() => value.cast<R>();
 
-  // --- Convenience methods ---
-
-  /// Replaces all elements with [elements] in a single notification.
-  ///
-  /// More efficient than `clear()` followed by `addAll()`.
+  /// Replaces all current elements with [elements] in a single notification.
   void assign(Iterable<E> elements) {
     value
       ..clear()
@@ -302,9 +291,7 @@ class LxList<E> extends Lx<List<E>> implements List<E> {
     refresh();
   }
 
-  /// Replaces all elements with a single [element].
-  ///
-  /// Clears the list and adds [element].
+  /// Replaces the list with a single [element].
   void assignOne(E element) {
     value
       ..clear()
@@ -313,36 +300,24 @@ class LxList<E> extends Lx<List<E>> implements List<E> {
   }
 }
 
-// ============================================================================
-// LxMap<K, V>
-// ============================================================================
-
-/// A reactive map that notifies observers when modified.
+/// A reactive map that automatically notifies observers when its entries change.
 ///
-/// [LxMap] wraps a standard [Map] and intercepts mutating methods to
-/// automatically trigger notifications.
+/// [LxMap] implements the standard Dart [Map] interface but intercepts mutating
+/// methods to trigger notifications.
 ///
-/// Use this collection when you need a map that updates the UI or triggers
-/// effects whenever entries are added, removed, or changed.
-///
-/// ## Usage
+/// ### Usage
 /// ```dart
-/// final settings = <String, dynamic>{}.lx;
-/// settings['theme'] = 'dark'; // Notifies observers
+/// final config = <String, String>{}.lx;
+/// config['theme'] = 'dark'; // Automatically notifies observers
 /// ```
-class LxMap<K, V> extends Lx<Map<K, V>> implements Map<K, V> {
+class LxMap<K, V> extends LxVar<Map<K, V>> implements Map<K, V> {
   /// Creates a reactive map.
-  ///
-  /// If [initial] is provided, it is used as the backing map.
-  /// Otherwise, an empty map is created.
-  LxMap([Map<K, V>? initial]) : super(initial ?? <K, V>{});
+  LxMap([Map<K, V>? initial, String? name]) : super(initial ?? <K, V>{});
 
-  /// Creates an [LxMap] from an existing map.
+  /// Creates an [LxMap] from an existing [Map].
   factory LxMap.from(Map<K, V> other) {
     return LxMap<K, V>(Map<K, V>.from(other));
   }
-
-  // --- Map interface implementation ---
 
   @override
   V? operator [](Object? key) => value[key];
@@ -405,8 +380,6 @@ class LxMap<K, V> extends Lx<Map<K, V>> implements Map<K, V> {
     return result;
   }
 
-  // --- Read-only Map methods (delegate to underlying map) ---
-
   @override
   bool containsKey(Object? key) => value.containsKey(key);
 
@@ -442,11 +415,7 @@ class LxMap<K, V> extends Lx<Map<K, V>> implements Map<K, V> {
   @override
   Map<RK, RV> cast<RK, RV>() => value.cast<RK, RV>();
 
-  // --- Convenience methods ---
-
-  /// Replaces all entries with [other] in a single notification.
-  ///
-  /// Clears the map and adds all entries from [other].
+  /// Replaces all entries with those from [other] in a single notification.
   void assign(Map<K, V> other) {
     value
       ..clear()
@@ -455,30 +424,18 @@ class LxMap<K, V> extends Lx<Map<K, V>> implements Map<K, V> {
   }
 }
 
-// ============================================================================
-// LxSet<E>
-// ============================================================================
-
-/// A reactive set that notifies observers when modified.
+/// A reactive set that automatically notifies observers when elements are added or removed.
 ///
-/// [LxSet] wraps a standard [Set] and intercepts mutating methods to
-/// automatically trigger notifications.
-///
-/// Use this collection when you need a set that updates the UI or triggers
-/// effects whenever elements are added or removed.
-class LxSet<E> extends Lx<Set<E>> implements Set<E> {
+/// [LxSet] implements the standard Dart [Set] interface and provides automatic
+/// reactivity for all mutating operations.
+class LxSet<E> extends LxVar<Set<E>> implements Set<E> {
   /// Creates a reactive set.
-  ///
-  /// If [initial] is provided, it is used as the backing set.
-  /// Otherwise, an empty set is created.
-  LxSet([Set<E>? initial]) : super(initial ?? <E>{});
+  LxSet([Set<E>? initial, String? name]) : super(initial ?? <E>{});
 
-  /// Creates an [LxSet] from an existing iterable.
+  /// Creates an [LxSet] from an existing [Iterable].
   factory LxSet.from(Iterable<E> elements) {
     return LxSet<E>(Set<E>.from(elements));
   }
-
-  // --- Set interface implementation ---
 
   @override
   bool add(E value) {
@@ -529,8 +486,6 @@ class LxSet<E> extends Lx<Set<E>> implements Set<E> {
     value.clear();
     refresh();
   }
-
-  // --- Read-only Set methods (delegate to underlying set) ---
 
   @override
   bool contains(Object? value) => this.value.contains(value);
@@ -641,11 +596,7 @@ class LxSet<E> extends Lx<Set<E>> implements Set<E> {
   @override
   Set<R> cast<R>() => value.cast<R>();
 
-  // --- Convenience methods ---
-
   /// Replaces all elements with [elements] in a single notification.
-  ///
-  /// Clears the set and adds all elements from [elements].
   void assign(Iterable<E> elements) {
     value
       ..clear()
@@ -653,9 +604,7 @@ class LxSet<E> extends Lx<Set<E>> implements Set<E> {
     refresh();
   }
 
-  /// Replaces all elements with a single [element].
-  ///
-  /// Clears the set and adds [element].
+  /// Replaces the set with a single [element].
   void assignOne(E element) {
     value
       ..clear()
@@ -664,20 +613,20 @@ class LxSet<E> extends Lx<Set<E>> implements Set<E> {
   }
 }
 
-/// Extension to create [LxList].
+/// Extension for [List] to create an [LxList].
 extension LxListExtension<E> on List<E> {
-  /// Creates an [LxList] from this list.
+  /// Wraps this list in a reactive [LxList].
   LxList<E> get lx => LxList<E>.from(this);
 }
 
-/// Extension to create [LxMap].
+/// Extension for [Map] to create an [LxMap].
 extension LxMapExtension<K, V> on Map<K, V> {
-  /// Creates an [LxMap] from this map.
+  /// Wraps this map in a reactive [LxMap].
   LxMap<K, V> get lx => LxMap<K, V>.from(this);
 }
 
-/// Extension to create [LxSet].
+/// Extension for [Set] to create an [LxSet].
 extension LxSetExtension<E> on Set<E> {
-  /// Creates an [LxSet] from this set.
+  /// Wraps this set in a reactive [LxSet].
   LxSet<E> get lx => LxSet<E>.from(this);
 }

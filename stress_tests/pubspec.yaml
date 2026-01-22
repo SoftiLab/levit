@@ -13,9 +13,14 @@ dependencies:
     sdk: flutter 
   levit_reactive:
     path: ../packages/levit_reactive
-  levit_di:
-    path: ../packages/levit_di
+  levit_scope:
+    path: ../packages/levit_scope
   levit_flutter:
     path: ../packages/levit_flutter
+  levit_dart:
+    path: ../packages/levit_dart
   test: ^1.24.0
+  rxdart:
+dev_dependencies:
+  lints: ^6.0.0
 

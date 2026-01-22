@@ -1,6 +1,3 @@
-Below is a refined, DevRel-quality root README that tightens positioning, improves narrative flow, and clearly differentiates Levit without overselling or disparaging alternatives. The goal is to read like the front door of a serious framework: calm, confident, and opinionated in the right places.
-
----
 
 # Levit
 
@@ -8,7 +5,7 @@ Below is a refined, DevRel-quality root README that tightens positioning, improv
 Lean by design. Fast by default. Explicit by choice.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-purple.svg)](https://opensource.org/licenses/MIT)
-[![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg)](https://codecov.io/github/atoumbre/levit)
+[![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg)](https://codecov.io/github/atoumbre/levit)
 
 Levit is a **modular reactive foundation for Flutter** that combines fine-grained reactivity, hierarchical dependency injection, and explicit widget-tree bindings.
 
@@ -151,7 +148,7 @@ A single, coherent model supports:
 
 ### Async as a First-Class Concern
 
-Futures and Streams integrate directly into the reactive graph through `AsyncStatus`, with built-in:
+Futures and Streams integrate directly into the reactive graph through `LxStatus`, with built-in:
 
 * Loading and error states
 * Cancellation and race handling
@@ -178,15 +175,16 @@ These boundaries are deliberate.
 
 ## Architectural Layers
 
-Levit is intentionally layered and composable, with each layer addressing a distinct architectural concern while remaining fully usable in isolation. At the foundation, levit_reactive provides a platform-agnostic reactivity engine written entirely in pure Dart. Alongside it, levit_di delivers a pure Dart, scoped, and type-safe dependency injection system with explicit lifecycle management, independent of any UI framework. These two primitives are composed and exposed through levit_dart, which acts as the canonical core for shared logic and non-UI environments. Finally, levit_flutter integrates the Levit core with Flutter’s widget tree, bridging reactivity and dependency injection without altering Flutter’s mental model or replacing its widgets. Together, these layers form a cohesive system while remaining independently consumable as building blocks.
+Levit is intentionally layered and composable, with each layer addressing a distinct architectural concern while remaining fully usable in isolation. At the foundation, levit_reactive provides a platform-agnostic reactivity engine written entirely in pure Dart. Alongside it, levit_scope delivers a pure Dart, scoped, and type-safe dependency injection system with explicit lifecycle management, independent of any UI framework. These two primitives are composed and exposed through levit_dart, which acts as the canonical core for shared logic and non-UI environments. levit_monitor provides observability, monitoring, and transport layers for inspection. Finally, levit_flutter integrates the Levit core with Flutter’s widget tree, bridging reactivity and dependency injection without altering Flutter’s mental model or replacing its widgets. Together, these layers form a cohesive system while remaining independently consumable as building blocks.
 
 ```mermaid
 flowchart TB
   subgraph PureDart["Pure Dart "]
     direction TB
     Reactive["levit_reactive - Reactive Primitives (Lx, Computed, Async, Middleware)"]
-    DI["levit_di - Scoped Dependency Injection (Lifecycle, Registry)"]
+    DI["levit_scope - Scoped Dependency Injection (Lifecycle, Registry)"]
     Core["levit_dart - Core Composition Layer (Controllers, Shared Logic)"]
+    Tools["levit_monitor - Observability, Monitoring, & Transports"]
   end
 
   Flutter["levit_flutter - Flutter Integration Layer (LWatch, LScope, Widget Bindings)"]
@@ -194,11 +192,14 @@ flowchart TB
   Reactive --> Core
   DI --> Core
   Core --> Flutter
+  Core --> Tools
+  Tools --> Flutter
 
   style PureDart fill:#F5F5F5,stroke:#9E9E9E,color:#212121
   style Reactive fill:#BBDEFB,stroke:#1976D2,color:#0D47A1
   style DI fill:#E1BEE7,stroke:#8E24AA,color:#4A148C
   style Core fill:#FFF9C4,stroke:#FBC02D,color:#F57F17
+  style Tools fill:#FFCC80,stroke:#EF6C00,color:#E65100
   style Flutter fill:#C8E6C9,stroke:#2E7D32,color:#1B5E20
 ```
 ---
@@ -207,11 +208,11 @@ flowchart TB
 
 | Package                                             | Description                                                                                  | Version                                                                                          |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **[`levit_dart`](./packages/levit_dart)**       | Core framework for pure Dart. Aggregates DI and Reactivity.                                  | [![Pub](https://img.shields.io/pub/v/levit_dart)](https://pub.dev/packages/levit_dart)         [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg&flag=levit_dart)](https://codecov.io/github/atoumbre/levit?flags=levit_dart)           |
-| **[`levit_reactive`](./packages/levit_reactive)** | Pure Dart reactive core: primitives (`Lx`), computed values, async handling, and middleware. | [![Pub](https://img.shields.io/pub/v/levit_reactive)](https://pub.dev/packages/levit_reactive) [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg&flag=levit_reactive)](https://codecov.io/github/atoumbre/levit?flags=levit_reactive) |
-| **[`levit_di`](./packages/levit_di)**             | Hierarchical, type-safe dependency injection and service registry.                           | [![Pub](https://img.shields.io/pub/v/levit_di)](https://pub.dev/packages/levit_di)             [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg&flag=levit_di)](https://codecov.io/github/atoumbre/levit?flags=levit_di)             |
-| **[`levit_flutter`](./packages/levit_flutter)**   | Flutter bindings: `LWatch`, `LScope`, and widget lifecycle integration.       | [![Pub](https://img.shields.io/pub/v/levit_flutter)](https://pub.dev/packages/levit_flutter)   [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg&flag=levit_flutter)](https://codecov.io/github/atoumbre/levit?flags=levit_flutter)   |
-
+| **[`levit_dart`](./packages/levit_dart)**       | Core framework for pure Dart. Aggregates DI and Reactivity.                                  | [![Pub](https://img.shields.io/pub/v/levit_dart)](https://pub.dev/packages/levit_dart)         [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg&flag=levit_dart)](https://codecov.io/github/atoumbre/levit?flags=levit_dart)           |
+| **[`levit_reactive`](./packages/levit_reactive)** | Pure Dart reactive core: primitives (`Lx`), computed values, async handling, and middleware. | [![Pub](https://img.shields.io/pub/v/levit_reactive)](https://pub.dev/packages/levit_reactive) [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg&flag=levit_reactive)](https://codecov.io/github/atoumbre/levit?flags=levit_reactive) |
+| **[`levit_scope`](./packages/levit_scope)**             | Hierarchical, type-safe dependency injection and service registry.                           | [![Pub](https://img.shields.io/pub/v/levit_scope)](https://pub.dev/packages/levit_scope)             [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg&flag=levit_scope)](https://codecov.io/github/atoumbre/levit?flags=levit_scope)             |
+| **[`levit_flutter`](./packages/levit_flutter)**   | Flutter bindings: `LWatch`, `LScope`, and widget lifecycle integration.       | [![Pub](https://img.shields.io/pub/v/levit_flutter)](https://pub.dev/packages/levit_flutter)   [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg&flag=levit_flutter)](https://codecov.io/github/atoumbre/levit?flags=levit_flutter)   |
+| **[`levit_monitor`](./packages/levit_monitor)**   | Observability, monitoring, and transport layers.    | [![Pub](https://img.shields.io/pub/v/levit_monitor)](https://pub.dev/packages/levit_monitor) [![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=ooSOnU6nkwg&flag=levit_monitor)](https://codecov.io/github/atoumbre/levit?flags=levit_monitor)    |
 
 
 

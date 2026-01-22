@@ -26,10 +26,10 @@ void main() {
       // Add listener to activate the lazy computed
       delayedDoubled.addListener(() {});
 
-      expect(delayedDoubled.status, isA<AsyncWaiting<int>>());
+      expect(delayedDoubled.status, isA<LxWaiting<int>>());
 
       await Future.delayed(Duration(milliseconds: 200));
-      expect(delayedDoubled.status, isA<AsyncSuccess<int>>());
+      expect(delayedDoubled.status, isA<LxSuccess<int>>());
       expect(delayedDoubled.status.valueOrNull, equals(2));
 
       count.value = 5;

@@ -9,10 +9,8 @@ environment:
 # Add regular dependencies here.
 dependencies:
   path: ^1.9.0
-  levit_reactive:
-    path: ../../packages/levit_reactive
-  levit_di:
-    path: ../../packages/levit_di
+  levit_dart:
+    path: ../../packages/levit_dart
   shared:
     path: ../shared
   shelf: ^1.4.2
@@ -20,7 +18,7 @@ dependencies:
   web_socket_channel: ^3.0.3
 
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^6.0.0
   test: ^1.25.6
   async: ^2.11.0
   stream_channel: ^2.1.1

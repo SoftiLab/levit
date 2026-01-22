@@ -12,5 +12,5 @@ dependencies:
     path: ../../packages/levit_dart
 
 dev_dependencies:
-  lints: ^5.0.0
+  lints: ^6.0.0
   test: ^1.25.6

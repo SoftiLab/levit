@@ -3,50 +3,44 @@ import 'package:levit_dart/levit_dart.dart';
 import 'package:levit_flutter/src/watch.dart';
 import 'package:levit_flutter/src/scope.dart';
 
-/// A base [StatelessWidget] designed for clean architecture UI components.
+/// A base [StatelessWidget] for UI components that depend on a controller.
 ///
-/// [LView] automatically resolves a controller of type [T] from the dependency
-/// injection system (nearest [LScope] or global [Levit]). It also provides
-/// optional automatic reactive tracking via [autoWatch].
+/// [LView] simplifies the access to business logic by automatically finding
+/// a controller of type [T] from the dependency injection system (nearest
+/// [LScope] or global [Levit]).
 ///
-/// Use this class as the base for your screens or complex widgets that map
-/// 1:1 with a controller.
-///
-/// ## Usage
+/// ### Usage
 /// ```dart
-/// class CounterPage extends LView<CounterController> {
-///   const CounterPage({super.key});
-///
+/// class MyPage extends LView<MyController> {
 ///   @override
-///   Widget buildContent(BuildContext context, CounterController controller) {
-///     return Scaffold(
-///       body: Center(child: Text('Count: ${controller.count.value}')),
-///     );
+///   Widget buildContent(BuildContext context, MyController controller) {
+///     return Text(controller.title.value);
 ///   }
 /// }
 /// ```
+///
+/// ### Important Considerations
+/// By default, [LView] wraps its [buildContent] in an [LWatch]. This means
+/// any reactive variables accessed during build will trigger a rebuild.
+/// Set [autoWatch] to `false` to disable this behavior.
+///
+/// [LView] does **not** manage the lifecycle of the controller. For transient
+/// controllers that should be disposed with the view, use [LScopedView].
 abstract class LView<T> extends StatelessWidget {
-  const LView({super.key});
-
-  /// Optional tag to use when finding the controller.
+  /// Optional key to use for resolving the controller.
   String? get tag => null;
 
-  /// Optional factory to create the controller if it's not found.
-  ///
-  /// If provided and the controller is not registered, this will be used to
-  /// create and register it (lazy-put style). This is useful for self-contained
-  /// views that don't rely on external routing setup.
+  /// Optional factory to create the controller if it's not found in DI.
   T? createController() => null;
 
-  /// Whether the controller created via [createController] should be permanent.
+  /// If `true`, the controller created via [createController] persists resets.
   bool get permanent => false;
 
-  /// Whether to wrap [buildContent] in [LWatch] for automatic rebuilding.
-  /// Defaults to `true`.
-  ///
-  /// Set this to `false` if you want to manage granular rebuilding manually
-  /// using [LWatch] or other widgets.
+  /// If `true`, wraps [buildContent] in an [LWatch]. Defaults to `true`.
   bool get autoWatch => true;
+
+  /// Creates a view with automatic controller resolution.
+  const LView({super.key});
 
   /// Override this method to build your widget tree.
   ///
@@ -55,17 +49,35 @@ abstract class LView<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Resolve controller using the contextual extension
     final T controller;
-    if (context.levit.isRegistered<T>(tag: tag)) {
-      controller = context.levit.find<T>(tag: tag);
-    } else {
-      final created = createController();
-      if (created != null) {
-        controller =
-            context.levit.put<T>(created, tag: tag, permanent: permanent);
+    final scope = LScope.of(context);
+    if (scope != null) {
+      final instance = scope.findOrNull<T>(tag: tag);
+      if (instance != null) {
+        controller = instance;
       } else {
-        throw 'LView: Controller $T not found and createController() returned null.';
+        controller = scope.put<T>(() {
+          final created = createController();
+          if (created == null) {
+            throw StateError(
+                'LView: Controller $T not found and createController() returned null.');
+          }
+          return created;
+        }, tag: tag, permanent: permanent);
+      }
+    } else {
+      final instance = Levit.findOrNull<T>(tag: tag);
+      if (instance != null) {
+        controller = instance;
+      } else {
+        controller = Levit.put<T>(() {
+          final created = createController();
+          if (created == null) {
+            throw StateError(
+                'LView: Controller $T not found and createController() returned null.');
+          }
+          return created;
+        }, tag: tag, permanent: permanent);
       }
     }
 
@@ -80,11 +92,7 @@ abstract class LView<T> extends StatelessWidget {
 ///
 /// Use [LStatefulView] when you need the full lifecycle of a [StatefulWidget]
 /// (e.g., `initState`, `dispose`) in addition to accessing a controller.
-/// This is less common in pure Levit architecture but useful for integrations.
 abstract class LStatefulView<T> extends StatefulWidget {
-  /// Creates a stateful view.
-  const LStatefulView({super.key});
-
   /// Optional tag to use when finding the controller.
   String? get tag => null;
 
@@ -95,15 +103,14 @@ abstract class LStatefulView<T> extends StatefulWidget {
   bool get permanent => false;
 
   /// Whether to wrap `buildContent` in [LWatch] for automatic rebuilding.
-  /// Defaults to `true`.
   bool get autoWatch => true;
+
+  /// Creates a stateful view.
+  const LStatefulView({super.key});
 }
 
 /// The base [State] class for [LStatefulView].
-///
-/// Provides access to the [controller] and additional lifecycle hooks.
 abstract class LState<W extends LStatefulView<T>, T> extends State<W> {
-  /// Base constructor.
   LState();
 
   /// The controller instance resolved from the dependency injection system.
@@ -112,24 +119,20 @@ abstract class LState<W extends LStatefulView<T>, T> extends State<W> {
       return context.levit.find<T>(tag: widget.tag);
     }
 
-    final created = widget.createController();
-    if (created != null) {
-      return context.levit
-          .put<T>(created, tag: widget.tag, permanent: widget.permanent);
-    }
-
-    throw 'LStatefulView: Controller $T not found and createController() returned null.';
+    return context.levit.put<T>(() {
+      final created = widget.createController();
+      if (created == null) {
+        throw StateError(
+            'LStatefulView: Controller $T not found and createController() returned null.');
+      }
+      return created;
+    }, tag: widget.tag, permanent: widget.permanent);
   }
 
   /// Called immediately after [initState].
-  ///
-  /// Use this for initialization logic that requires access to the context
-  /// or the controller (which are safe to access here).
   void onInit() {}
 
   /// Called immediately before `dispose`.
-  ///
-  /// Use this for cleanup logic.
   void onClose() {}
 
   @override

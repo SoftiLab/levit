@@ -284,5 +284,22 @@ void main() {
       await Future.delayed(Duration.zero);
       expect(values.last, 'microtask');
     });
+    test('Batch notifies multiple listeners in loop', () {
+      final a = 0.lx;
+      final b = 0.lx;
+
+      // We want to ensure the loop in batch() that iterates over the unique notifiers
+      // is covered. We use two different reactives to ensure the Set iteration happens.
+      int notifyCount = 0;
+      a.addListener(() => notifyCount++);
+      b.addListener(() => notifyCount++);
+
+      Lx.batch(() {
+        a.value = 1;
+        b.value = 2;
+      });
+
+      expect(notifyCount, 2);
+    });
   });
 }

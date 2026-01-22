@@ -1,58 +1,75 @@
+import 'async_types.dart';
 import 'core.dart';
 
-// ============================================================================
-// LxBool
-// ============================================================================
-
-/// A reactive boolean with helper methods for common operations.
+/// A reactive variable that holds a mutable value.
 ///
-/// This specialized [Lx] type adds convenient methods like [toggle], [setTrue],
-/// and [setFalse] to simplify boolean state management.
+/// [LxVar] is the primary way to define piece of mutable state in the Levit
+/// ecosystem. It extends [LxBase] to provide a public setter for [value]
+/// and additional fluent utilities.
 ///
-/// ## Usage
+/// ### Usage
 /// ```dart
-/// final isVisible = LxBool(false);
-/// isVisible.toggle();
+/// final count = LxVar(0);
+/// count.value++; // Updates and notifies
 /// ```
-class LxBool extends Lx<bool> {
-  /// Creates a reactive boolean.
-  ///
-  /// [initial] defaults to `false`.
-  LxBool([super.initial = false]);
+class LxVar<T> extends LxBase<T> {
+  /// Creates a reactive variable with an [initial] value.
+  LxVar(super.initial, {super.onListen, super.onCancel, super.name});
 
-  /// Toggles the value between `true` and `false`.
+  /// Updates the value and triggers notifications if the value changed.
+  set value(T val) => setValueInternal(val);
+
+  /// Functional-style update and retrieval.
+  ///
+  /// // Example:
+  /// ```dart
+  /// count(5); // sets value to 5
+  /// print(count()); // returns 5
+  /// ```
+  @override
+  T call([T? v]) {
+    if (v is T) {
+      value = v;
+    }
+    return value;
+  }
+
+  /// Transforms the stream of changes using [transformer].
+  ///
+  /// Returns a new [LxStream] reflecting the transformed data.
+  LxStream<R> transform<R>(Stream<R> Function(Stream<T> stream) transformer) {
+    return LxStream<R>(transformer(stream));
+  }
+}
+
+/// A reactive boolean with specialized state manipulation methods.
+///
+/// [LxBool] simplifies common boolean operations like toggling and explicit
+/// true/false assignment.
+class LxBool extends LxVar<bool> {
+  /// Creates a reactive boolean. [initial] defaults to `false`.
+  LxBool([super.initial = false, String? name]) : super(name: name);
+
+  /// Toggles the current value.
   void toggle() => value = !value;
 
-  /// Sets the value to `true`.
+  /// Explicitly sets the value to `true`.
   void setTrue() => value = true;
 
-  /// Sets the value to `false`.
+  /// Explicitly sets the value to `false`.
   void setFalse() => value = false;
 
-  /// Returns `true` if the value is `true`.
+  /// Returns `true` if the current value is `true`.
   bool get isTrue => value;
 
-  /// Returns `true` if the value is `false`.
+  /// Returns `true` if the current value is `false`.
   bool get isFalse => !value;
 }
 
-// ============================================================================
-// LxNum - Numeric Operations
-// ============================================================================
-
-/// A reactive number with arithmetic helper methods.
-///
-/// This specialized [Lx] type adds methods like [increment], [decrement],
-/// [add], and [multiply] for cleaner arithmetic operations on reactive state.
-///
-/// ## Usage
-/// ```dart
-/// final count = LxInt(0);
-/// count.increment();
-/// ```
-class LxNum<T extends num> extends Lx<T> {
-  /// Creates a reactive number.
-  LxNum(super.initial);
+/// A reactive number with fluent arithmetic extensions.
+class LxNum<T extends num> extends LxVar<T> {
+  /// Creates a reactive number instance.
+  LxNum(super.initial, {super.name});
 
   /// Increments the value by 1.
   void increment() => value = (value + 1) as T;
@@ -75,10 +92,10 @@ class LxNum<T extends num> extends Lx<T> {
   /// Performs integer division by [other].
   void intDivide(num other) => value = (value ~/ other) as T;
 
-  /// Sets the value to the remainder of division by [other].
+  /// Assigns the result of `value % other` to the variable.
   void mod(num other) => value = (value % other) as T;
 
-  /// Negates the value.
+  /// Negates the current value.
   void negate() => value = (-value) as T;
 
   /// Clamps the value between [min] and [max].
@@ -87,44 +104,39 @@ class LxNum<T extends num> extends Lx<T> {
   }
 }
 
-/// A reactive integer.
+/// Type alias for a reactive integer.
 typedef LxInt = LxNum<int>;
 
-/// A reactive double.
+/// Type alias for a reactive double.
 typedef LxDouble = LxNum<double>;
 
-// ============================================================================
-// Extensions - The .lx syntax
-// ============================================================================
-
-/// Extensions to create reactive objects from standard types.
+/// Extensions to provide the signature `.lx` syntax for creating reactive state.
 extension LxExtension<T> on T {
-  /// Creates a reactive wrapper around this value.
+  /// Wraps this value in a reactive [LxVar].
   ///
   /// ```dart
-  /// final count = 0.lx;
   /// final name = 'Levit'.lx;
   /// ```
-  Lx<T> get lx => Lx<T>(this);
+  LxVar<T> get lx => LxVar<T>(this);
 
-  /// Creates a nullable reactive wrapper around this value.
-  Lx<T?> get lxNullable => Lx<T?>(this);
+  /// Wraps this value in a nullable reactive [LxVar].
+  LxVar<T?> get lxNullable => LxVar<T?>(this);
 }
 
-/// Extensions for boolean specific reactivity.
+/// Specialized `.lx` extension for booleans.
 extension LxBoolExtension on bool {
-  /// Creates a [LxBool] from this boolean.
+  /// Creates an [LxBool] from this value.
   LxBool get lx => LxBool(this);
 }
 
-/// Extensions for integer specific reactivity.
+/// Specialized `.lx` extension for integers.
 extension LxIntExtension on int {
-  /// Creates a [LxInt] from this integer.
+  /// Creates an [LxInt] from this value.
   LxInt get lx => LxInt(this);
 }
 
-/// Extensions for double specific reactivity.
+/// Specialized `.lx` extension for doubles.
 extension LxDoubleExtension on double {
-  /// Creates a [LxDouble] from this double.
+  /// Creates an [LxDouble] from this value.
   LxDouble get lx => LxDouble(this);
 }
