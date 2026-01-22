@@ -1,44 +1,36 @@
 import 'dart:async';
-
 import 'core.dart';
 import 'async_status.dart';
-import 'computed.dart';
 import 'global_accessor.dart';
 
-// ============================================================================
-// LxWatch Models
-// ============================================================================
-
-/// Statistics for a [LxWatch] execution.
+/// Metrics and metadata for a particular [LxWatch] execution.
 ///
-/// Unlike other reactive sources, [LxWatch] is not geared toward the value it is watching
-/// but rather toward the execution of the callback.
-///
-/// It does not extends LxReactive<[LxStatus]> like [LxComputed] and [LxComputed].
-/// Instead, it is  a [LxReactive] holding execution metrics ([LxWatchStat]),
-/// enabling management, monitoring, performance tracking, and debugging.
+/// [LxWatchStat] provides insights into the performance and behavior of a
+/// reactive watcher. It tracks execution counts, durations, and asynchronous
+/// state.
 class LxWatchStat {
-  /// How many times the watcher has triggered.
+  /// The total number of times the watcher callback has been executed.
   final int runCount;
 
-  /// Duration of the last execution.
+  /// The duration of the most recent execution.
   final Duration lastDuration;
 
-  /// Accumulated duration of all executions.
+  /// The cumulative duration of all executions since the watcher was created.
   final Duration totalDuration;
 
-  /// Timestamp of the last execution completion.
+  /// The timestamp of the last successful execution.
   final DateTime? lastRun;
 
-  /// Most recent error, if any.
+  /// The most recent error encountered during execution, if any.
   final Object? error;
 
-  /// Whether the watcher detected an async callback (returned a Future).
+  /// Whether the callback is recognized as asynchronous (returns a [Future]).
   final bool isAsync;
 
-  /// Whether an async callback is currently executing.
+  /// Whether an asynchronous callback is currently pending completion.
   final bool isProcessing;
 
+  /// Creates a statistics snapshot.
   const LxWatchStat({
     this.runCount = 0,
     this.lastDuration = Duration.zero,
@@ -49,6 +41,7 @@ class LxWatchStat {
     this.isProcessing = false,
   });
 
+  /// Creates a copy of the statistics with updated fields.
   LxWatchStat copyWith({
     int? runCount,
     Duration? lastDuration,
@@ -75,39 +68,40 @@ class LxWatchStat {
   }
 }
 
-// ============================================================================
-// LxWatch Class
-// ============================================================================
-
-/// A reactive watcher that tracks its execution statistics.
+/// A reactive observer that executes a side-effect when a source changes.
 ///
-/// Wraps a subscription to a [LxReactive] source and executes a callback
-/// when the source changes. Unlike a raw subscription, [LxWatch] is itself
-/// a [LxReactive] holding execution metrics ([LxWatchStat]), enabling
-/// monitoring, performance tracking, and debugging.
+/// [LxWatch] is the primary mechanism for reacting to state changes with
+/// non-reactive code (e.g., logging, navigation, or database writes).
 ///
-/// To dispose the watcher, call `.close()` or rely on [Lx] auto-disposal mechanisms.
+/// Unlike a standard [StreamSubscription], [LxWatch] provides:
+/// 1.  **Observability**: It is itself an [LxReactive] that holds [LxWatchStat].
+/// 2.  **Monitoring**: Tracks execution performance and recognizes async gaps.
+/// 3.  **Error Handling**: Provides dedicated hooks for synchronous and
+///     asynchronous errors.
+///
+/// ### Usage
+/// ```dart
+/// final count = 0.lx;
+/// final watcher = LxWatch(count, (v) => print('New value: $v'));
+/// ```
 class LxWatch<T> extends LxBase<LxWatchStat> {
+  /// The reactive source being monitored.
   final LxReactive<T> source;
+
+  /// The callback to execute whenever the source notifies a change.
   final void Function(T value) callback;
+
   final Function(Object error, StackTrace stackTrace)? _onError;
   final Function(Object error, StackTrace stackTrace)? _onProcessingError;
-
-  /// Whether performance monitoring is enabled for this watcher.
-  ///
-  /// If `null`, uses the global [Lx.enableWatchMonitoring] setting.
-  /// If explicitly set, overrides the global setting.
   final bool? _enableMonitoring;
 
   StreamSubscription? _subscription;
   void Function()? _removeListener;
 
-  /// Whether this watcher is actively tracking performance metrics.
-  ///
-  /// Returns the per-watcher setting if explicitly set, otherwise
-  /// falls back to [Lx.enableWatchMonitoring].
+  /// Returns `true` if this watcher is capturing performance metrics.
   bool get isMonitoringEnabled => _enableMonitoring ?? Lx.enableWatchMonitoring;
 
+  /// Creates a new watcher instance.
   LxWatch(
     this.source,
     this.callback, {
@@ -131,7 +125,6 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
         final result = (callback as dynamic)(value);
 
         if (result is Future) {
-          // Detected Async
           if (monitoring && (!this.value.isAsync || !this.value.isProcessing)) {
             updateValue((s) => s.copyWith(isAsync: true, isProcessing: true));
           }
@@ -150,9 +143,7 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
                   ));
             }
           }).catchError((e, s) {
-            if (_onProcessingError != null) {
-              _onProcessingError!(e, s);
-            }
+            _onProcessingError?.call(e, s);
             if (monitoring) {
               final end = DateTime.now();
               final duration = end.difference(start!);
@@ -167,7 +158,6 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
             }
           });
         } else {
-          // Synchronous
           if (monitoring) {
             final end = DateTime.now();
             final duration = end.difference(start!);
@@ -183,9 +173,7 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
           }
         }
       } catch (e, s) {
-        if (_onProcessingError != null) {
-          _onProcessingError!(e, s);
-        }
+        _onProcessingError?.call(e, s);
 
         if (monitoring) {
           final end = DateTime.now();
@@ -205,17 +193,12 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
     }
 
     if (_onError == null) {
-      void listener() {
-        executeCallback(source.value);
-      }
-
+      void listener() => executeCallback(source.value);
       source.addListener(listener);
       _removeListener = () => source.removeListener(listener);
     } else {
       _subscription = source.stream.listen(
-        (val) {
-          executeCallback(val);
-        },
+        (val) => executeCallback(val),
         onError: _onError,
       );
     }
@@ -228,13 +211,7 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
     super.close();
   }
 
-  // ============================================================================
-// Convenience watchers
-// ============================================================================
-
-  /// Watches [source] and calls [callback] when it becomes true.
-  ///
-  /// Useful for triggering one-off actions or navigation when a boolean condition is met.
+  /// Triggers [callback] only when the boolean [source] becomes `true`.
   static LxWatch<bool> isTrue(
     LxReactive<bool> source,
     void Function() callback, {
@@ -243,15 +220,13 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
     return LxWatch<bool>(
       source,
       (value) {
-        if (value) return callback();
+        if (value) callback();
       },
       onProcessingError: onProcessingError,
     );
   }
 
-  /// Watches [source] and calls [callback] when it becomes false.
-  ///
-  /// Useful for triggering actions when a boolean condition is no longer met.
+  /// Triggers [callback] only when the boolean [source] becomes `false`.
   static LxWatch<bool> isFalse(
     LxReactive<bool> source,
     void Function() callback, {
@@ -260,15 +235,13 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
     return LxWatch<bool>(
       source,
       (value) {
-        if (!value) return callback();
+        if (!value) callback();
       },
       onProcessingError: onProcessingError,
     );
   }
 
-  /// Watches [source] and calls [callback] when it matches [targetValue].
-  ///
-  /// Triggers whenever [source] updates to a value equal to [targetValue].
+  /// Triggers [callback] only when [source] matches [targetValue].
   static LxWatch<T> isValue<T>(
     LxReactive<T> source,
     T targetValue,
@@ -278,20 +251,13 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
     return LxWatch<T>(
       source,
       (value) {
-        if (value == targetValue) return callback();
+        if (value == targetValue) callback();
       },
       onProcessingError: onProcessingError,
     );
   }
 
-// ============================================================================
-// LxStatus specialized watchers
-// ============================================================================
-
-  /// Watches an [LxStatus] source and calls specific callbacks for each state.
-  ///
-  /// This is a convenient way to handle side effects based on the status of an
-  /// asynchronous operation (e.g., showing a toast on error, navigating on success).
+  /// Watches an async [source] and triggers callbacks for specific state transitions.
   static LxWatch<LxStatus<T>> status<T>(
     LxReactive<LxStatus<T>> source, {
     void Function()? onIdle,
@@ -315,5 +281,16 @@ class LxWatch<T> extends LxBase<LxWatchStat> {
       },
       onProcessingError: onProcessingError,
     );
+  }
+}
+
+/// Shorthand extensions for creating watchers on any reactive source.
+extension LxReactiveWatchExtensions<T> on LxReactive<T> {
+  /// Executes [callback] whenever this reactive value changes.
+  ///
+  /// Returns an [LxWatch] instance that can be used to monitor performance
+  /// or manually closed.
+  LxWatch<T> listen(void Function(T value) callback) {
+    return LxWatch<T>(this, callback);
   }
 }

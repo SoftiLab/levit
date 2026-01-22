@@ -4,18 +4,19 @@ part of '../levit_dart.dart';
 extension LevitInstanceExtension<T> on T {
   /// Registers this instance immediately in the active [LevitScope].
   ///
-  /// This is a fluent alternative to `Levit.put(() => instance)`.
-  /// Returns the registered instance.
+  /// This is a fluent alternative to [Levit.put].
   ///
+  /// // Example usage:
   /// ```dart
   /// final service = MyService().levitPut();
   /// ```
+  ///
+  /// Returns the registered instance.
   T levitPut() => Levit.put(() => this);
 
   /// Registers this instance as a lazy dependency in the active [LevitScope].
   ///
-  /// The [builder] (which simply returns this instance) will only be called
-  /// when the dependency is first requested.
+  /// The instance will only be resolved when first requested via [Levit.find].
   void levitLazyPut() => Levit.lazyPut(() => this);
 }
 
@@ -23,16 +24,20 @@ extension LevitInstanceExtension<T> on T {
 extension LevitBuilderExtension<T> on T Function() {
   /// Executes and registers the result of this builder in the active [LevitScope].
   ///
-  /// * [tag]: Optional unique identifier for the instance.
-  /// * [permanent]: If `true`, the instance survives a non-forced reset.
+  /// Parameters:
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the instance survives a non-forced reset.
+  ///
+  /// Returns the created instance.
   T levitPut({String? tag, bool permanent = false}) =>
       Levit.put<T>(this, tag: tag, permanent: permanent);
 
   /// Registers this builder for lazy instantiation in the active [LevitScope].
   ///
-  /// * [tag]: Optional unique identifier for the instance.
-  /// * [permanent]: If `true`, the registration survives a non-forced reset.
-  /// * [isFactory]: If `true`, the builder is executed for every `find` call.
+  /// Parameters:
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the registration survives a non-forced reset.
+  /// - [isFactory]: If `true`, the builder is executed for every `find` call.
   void levitLazyPut(
           {String? tag, bool permanent = false, bool isFactory = false}) =>
       Levit.lazyPut<T>(this,
@@ -43,9 +48,10 @@ extension LevitBuilderExtension<T> on T Function() {
 extension LevitAsyncInstanceExtension<T> on Future<T> {
   /// Registers this [Future] as a lazy asynchronous dependency.
   ///
-  /// * [tag]: Optional unique identifier for the instance.
-  /// * [permanent]: If `true`, the registration survives a non-forced reset.
-  /// * [isFactory]: If `true`, the future is re-awaited for every `findAsync` call.
+  /// Parameters:
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the registration survives a non-forced reset.
+  /// - [isFactory]: If `true`, the future is re-awaited for every `findAsync` call.
   void levitLazyPutAsync(
           {String? tag, bool permanent = false, bool isFactory = false}) =>
       Levit.lazyPutAsync(() => this,
@@ -56,9 +62,10 @@ extension LevitAsyncInstanceExtension<T> on Future<T> {
 extension LevitAsyncBuilderExtension<T> on Future<T> Function() {
   /// Registers this asynchronous builder for lazy instantiation.
   ///
-  /// * [tag]: Optional unique identifier for the instance.
-  /// * [permanent]: If `true`, the registration survives a non-forced reset.
-  /// * [isFactory]: If `true`, the builder is re-run for every `findAsync` call.
+  /// Parameters:
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the registration survives a non-forced reset.
+  /// - [isFactory]: If `true`, the builder is re-run for every `findAsync` call.
   void levitLazyPutAsync(
           {String? tag, bool permanent = false, bool isFactory = false}) =>
       Levit.lazyPutAsync(this,

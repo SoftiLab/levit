@@ -1,11 +1,21 @@
 import 'package:levit_dart/levit_dart.dart';
 
-/// One sealed class for BOTH DI and Reactive events.
+/// The base class for all diagnostic events in the Levit ecosystem.
+///
+/// [MonitorEvent] provides a common schema for both state changes and
+/// dependency injection events, ensuring they can be serialized and
+/// correlated across distributed systems or DevTools.
 sealed class MonitorEvent {
+  /// A monotonically increasing sequence number within the current session.
   final int seq;
+
+  /// The precise timestamp when the event was captured.
   final DateTime timestamp;
+
+  /// A unique identifier for the current application session.
   final String sessionId;
 
+  /// Internal constructor for monitor events.
   MonitorEvent({
     required this.sessionId,
     DateTime? timestamp,
@@ -14,12 +24,14 @@ sealed class MonitorEvent {
 
   static int _nextSeq = 0;
 
+  /// Converts the event metadata into a standard JSON-encodable map.
   Map<String, dynamic> toJson() => {
         'seq': seq,
         'timestamp': timestamp.toIso8601String(),
         'sessionId': sessionId,
       };
 
+  /// Safeguard for converting arbitrary objects to string representations.
   static dynamic _stringify(dynamic value) {
     if (value == null) return null;
     try {
@@ -31,11 +43,14 @@ sealed class MonitorEvent {
 }
 
 // ============================================================================
-// REACTIVE EVENTS (from LevitReactiveMiddleware)
+// Reactive Events
 // ============================================================================
 
+/// Base class for events related to the reactive state engine ([Lx]).
 sealed class ReactiveEvent extends MonitorEvent {
+  /// The reactive object that triggered the event.
   final LxReactive reactive;
+
   ReactiveEvent({required super.sessionId, required this.reactive});
 
   @override
@@ -47,6 +62,7 @@ sealed class ReactiveEvent extends MonitorEvent {
       };
 }
 
+/// Event triggered when a new reactive variable is instantiated.
 class ReactiveInitEvent extends ReactiveEvent {
   ReactiveInitEvent({required super.sessionId, required super.reactive});
   @override
@@ -58,6 +74,7 @@ class ReactiveInitEvent extends ReactiveEvent {
       };
 }
 
+/// Event triggered when a reactive object's lifecycle ends.
 class ReactiveDisposeEvent extends ReactiveEvent {
   ReactiveDisposeEvent({required super.sessionId, required super.reactive});
   @override
@@ -67,13 +84,17 @@ class ReactiveDisposeEvent extends ReactiveEvent {
       };
 }
 
+/// Event triggered by a single state mutation.
 class ReactiveChangeEvent extends ReactiveEvent {
+  /// The change record intercepted from the middleware.
   final LevitReactiveChange change;
+
   ReactiveChangeEvent({
     required super.sessionId,
     required super.reactive,
     required this.change,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -85,9 +106,13 @@ class ReactiveChangeEvent extends ReactiveEvent {
       };
 }
 
+/// Event triggered at the completion of a reactive batch.
 class ReactiveBatchEvent extends MonitorEvent {
+  /// The batch record containing all mutations occurred within the scope.
   final LevitReactiveBatch change;
+
   ReactiveBatchEvent({required super.sessionId, required this.change});
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -106,13 +131,17 @@ class ReactiveBatchEvent extends MonitorEvent {
       };
 }
 
+/// Event triggered when a computed value's dependency graph is updated.
 class ReactiveGraphChangeEvent extends ReactiveEvent {
+  /// The current set of dependencies for the reactive object.
   final List<LxReactive> dependencies;
+
   ReactiveGraphChangeEvent({
     required super.sessionId,
     required super.reactive,
     required this.dependencies,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -127,13 +156,21 @@ class ReactiveGraphChangeEvent extends ReactiveEvent {
 }
 
 // ============================================================================
-// DI EVENTS (from LevitScopeMiddleware)
+// Dependency Injection Events
 // ============================================================================
 
+/// Base class for events related to the dependency injection system ([Levit]).
 sealed class DependencyEvent extends MonitorEvent {
+  /// The unique identifier of the scope where the event occurred.
   final int scopeId;
+
+  /// The descriptive name of the scope.
   final String scopeName;
+
+  /// The registration key of the dependency.
   final String key;
+
+  /// Metadata about the dependency at the time of the event.
   final LevitDependency info;
 
   DependencyEvent({
@@ -158,6 +195,7 @@ sealed class DependencyEvent extends MonitorEvent {
       };
 }
 
+/// Event triggered when a dependency is registered with a scope.
 class DependencyRegisterEvent extends DependencyEvent {
   final String source;
   DependencyRegisterEvent({
@@ -168,6 +206,7 @@ class DependencyRegisterEvent extends DependencyEvent {
     required super.info,
     required this.source,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -176,6 +215,7 @@ class DependencyRegisterEvent extends DependencyEvent {
       };
 }
 
+/// Event triggered when a dependency is successfully resolved.
 class DependencyResolveEvent extends DependencyEvent {
   final String source;
   DependencyResolveEvent({
@@ -186,6 +226,7 @@ class DependencyResolveEvent extends DependencyEvent {
     required super.info,
     required this.source,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -195,6 +236,7 @@ class DependencyResolveEvent extends DependencyEvent {
       };
 }
 
+/// Event triggered when a dependency is removed from a scope.
 class DependencyDeleteEvent extends DependencyEvent {
   final String source;
   DependencyDeleteEvent({
@@ -205,6 +247,7 @@ class DependencyDeleteEvent extends DependencyEvent {
     required super.info,
     required this.source,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -213,7 +256,7 @@ class DependencyDeleteEvent extends DependencyEvent {
       };
 }
 
-// Special wrapping events
+/// Event triggered when a dependency instance creation begins.
 class DependencyInstanceCreateEvent extends DependencyEvent {
   DependencyInstanceCreateEvent({
     required super.sessionId,
@@ -222,6 +265,7 @@ class DependencyInstanceCreateEvent extends DependencyEvent {
     required super.key,
     required super.info,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
@@ -229,8 +273,11 @@ class DependencyInstanceCreateEvent extends DependencyEvent {
       };
 }
 
+/// Event triggered when a dependency instance is fully initialized and ready.
 class DependencyInstanceReadyEvent extends DependencyEvent {
+  /// The resulting instance.
   final dynamic instance;
+
   DependencyInstanceReadyEvent({
     required super.sessionId,
     required super.scopeId,
@@ -239,6 +286,7 @@ class DependencyInstanceReadyEvent extends DependencyEvent {
     required super.info,
     required this.instance,
   });
+
   @override
   Map<String, dynamic> toJson() => {
         ...super.toJson(),

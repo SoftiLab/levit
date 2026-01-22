@@ -1,109 +1,90 @@
-// ==========================================================================
-// Lx Static API - Configuration, Proxy, Batching
-// ==========================================================================
-
 import 'core.dart';
 import 'middlewares.dart';
 import 'package:meta/meta.dart';
 import 'watchers.dart';
 
-/// Global accessor for reactive state management.
+/// The global entry point for the Levit reactive engine.
 ///
-/// This class provides static access to core reactive state management functionality,
-/// including configuration, proxy management, and middleware operations.
+/// [Lx] provides static access to core functionality, including configuration,
+/// dependency tracking, and batching.
 class Lx {
+  /// The active observer capturing dependencies.
   static LevitReactiveObserver? get proxy => LevitStateCore.proxy;
 
+  /// Sets the active observer. Used by [LWatch] and [LxComputed].
   static set proxy(LevitReactiveObserver? value) {
     LevitStateCore.proxy = value;
   }
 
-// --------------------------------------------------------------------------
-// Configuration
-// --------------------------------------------------------------------------
-
-  /// Whether to capture stack traces on state changes (expensive).
+  /// Whether to capture stack traces on state changes (performance intensive).
   static bool get captureStackTrace => LevitStateCore.captureStackTrace;
-
-  /// Global flag to enable/disable [LxWatch] performance monitoring.
-  ///
-  /// When `true` (default), [LxWatch] instances track execution statistics
-  /// including run count, duration, and timing. This is useful for debugging
-  /// and performance analysis but adds overhead.
-  ///
-  /// When `false`, [LxWatch] skips all timing measurements and stat updates,
-  /// reducing overhead in production.
-  ///
-  /// Individual watchers can override this via their `enableMonitoring` parameter.
-  ///
-  /// ```dart
-  /// // Disable globally for production
-  /// Lx.enableWatchMonitoring = false;
-  /// ```
-  static bool enableWatchMonitoring = true;
 
   static set captureStackTrace(bool value) {
     LevitStateCore.captureStackTrace = value;
   }
 
-// --------------------------------------------------------------------------
-// Middlewares
-// --------------------------------------------------------------------------
+  /// Global flag to enable or disable performance monitoring for all [LxWatch] instances.
+  ///
+  /// When `true` (default), watchers track execution counts and durations.
+  static bool enableWatchMonitoring = true;
 
-  /// Adds a middleware.
+  /// Registers a new [LevitReactiveMiddleware] to intercept or observe state changes.
   static LevitReactiveMiddleware addMiddleware(
       LevitReactiveMiddleware middleware) {
     return LevitReactiveMiddleware.add(middleware);
   }
 
-  /// Removes a middleware.
+  /// Unregisters a previously added middleware.
   static bool removeMiddleware(LevitReactiveMiddleware middleware) {
     return LevitReactiveMiddleware.remove(middleware);
   }
 
-  /// Clears all middlewares. Use with caution.
+  /// Removes all active middlewares.
   static void clearMiddlewares() {
     LevitReactiveMiddleware.clear();
   }
 
+  /// Checks if a particular middleware is currently registered.
   static bool containsMiddleware(LevitReactiveMiddleware middleware) {
     return LevitReactiveMiddleware.contains(middleware);
   }
 
+  /// Executes [action] while temporarily bypassing all registered middlewares.
   static void runWithoutMiddleware(void Function() action) {
     LevitReactiveMiddleware.runWithoutMiddleware(action);
   }
 
-// --------------------------------------------------------------------------
-// Batching
-// --------------------------------------------------------------------------
-
+  /// Executes [callback] in a synchronous batch.
+  ///
+  /// Notifications for all variables mutated inside the batch are deferred
+  /// until the callback completes, ensuring only a single notification per variable.
   static R batch<R>(R Function() callback) {
     return LevitStateCore.batch(callback);
   }
 
+  /// Executes asynchronous [callback] in a batch.
+  ///
+  /// Like [batch], but maintains the batching context across asynchronous gaps.
   static Future<R> batchAsync<R>(Future<R> Function() callback) {
     return LevitStateCore.batchAsync(callback);
   }
 
+  /// Returns `true` if a batching operation is currently in progress.
   static bool get isBatching => LevitStateCore.isBatching;
 
-// --------------------------------------------------------------------------
-// Async Zone Tracking (Internal)
-// --------------------------------------------------------------------------
-
-  /// Internal: Enters async tracking scope.
+  /// Internal: Enters an asynchronous tracking scope.
   @internal
   static void enterAsyncScope() {
     LevitStateCore.enterAsyncScope();
   }
 
-  /// Internal: Exits async tracking scope.
+  /// Internal: Exits an asynchronous tracking scope.
   @internal
   static void exitAsyncScope() {
     LevitStateCore.exitAsyncScope();
   }
 
+  /// Internal: Zone key for identifying the active async computed tracker.
   @internal
   static Object get asyncComputedTrackerZoneKey =>
       LevitStateCore.asyncComputedTrackerZoneKey;

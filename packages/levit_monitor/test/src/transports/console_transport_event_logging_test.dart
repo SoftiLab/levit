@@ -1,6 +1,6 @@
 import 'package:levit_monitor/levit_monitor.dart';
 import 'package:levit_dart/levit_dart.dart';
-import 'package:levit_scope/levit_scope.dart';
+
 import 'package:test/test.dart';
 
 void main() {

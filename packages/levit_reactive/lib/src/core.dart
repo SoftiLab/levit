@@ -214,76 +214,84 @@ class LevitStateCore {
   }
 }
 
-/// Common interface for all reactive types.
+/// The foundational interface for all reactive objects in the Levit ecosystem.
 ///
-/// Unifies [Lx], [LxFuture], and [LxStream] so they can be used interchangeably
-/// with utilities like [watch].
+/// [LxReactive] unifies various reactive sources (variables, futures, streams)
+/// under a consistent API. This allows components like [watch] and [LWatch]
+/// to observe any reactive source interchangeably.
 ///
-/// This interface ensures that any reactive source can be observed, streamed,
-/// and listened to in a consistent manner.
+/// ### Core Responsibilities
+/// 1.  **Observation**: Reports reads to the active [LevitReactiveObserver].
+/// 2.  **Notification**: Alerts listeners and streams when the underlying value changes.
+/// 3.  **Lifecycle**: Provides a mechanism for resource cleanup via [close].
 abstract interface class LxReactive<T> {
-  /// The current value.
+  /// The current state of the reactive object.
   ///
-  /// Reading this registers the variable with the active [LevitReactiveObserver].
+  /// Reading this property automatically registers the object as a dependency
+  /// for the active observer (e.g., inside an [LxComputed] or [LWatch] build).
   T get value;
 
-  /// Unique identifier for this reactive object.
+  /// A unique runtime identifier for this reactive instance.
   int get id;
 
-  /// A stream of value changes.
+  /// A [Stream] that emits the latest value whenever it updates.
   Stream<T> get stream;
 
-  /// Adds a listener for value changes.
-  ///
-  /// [listener] will be invoked whenever [value] updates.
+  /// Registers a synchronous [listener] to be called on every value update.
   void addListener(void Function() listener);
 
-  /// Removes a listener.
-  ///
-  /// Removes [listener] from the reactive object.
-  ///
-  /// [listener] will no longer be invoked on updates.
+  /// Unregisters a previously added [listener].
   void removeListener(void Function() listener);
 
-  /// Closes the reactive object and releases resources.
+  /// Permanently closes the reactive object and releases all internal resources.
   ///
-  /// Should be called when the object is no longer needed to prevent memory leaks.
+  /// After calling [close], the object should no longer be used.
   void close();
 
-  /// The debug name of this reactive object.
+  /// An optional descriptive name for debugging and profiling.
   String? get name;
   set name(String? value);
 
-  /// The ID of the controller that owns this reactive object.
+  /// The registration key of the owning controller, if applicable.
   String? get ownerId;
   set ownerId(String? value);
 }
 
-/// An observer that tracks reactive dependencies during execution.
+/// An observer interface used to automatically track reactive dependencies.
 ///
-/// Implemented by [LWatch] and computed values to automatically detect
-/// which [Lx] variables are accessed.
+/// [LevitReactiveObserver] is implemented by components that need to respond
+/// to changes in reactive state without manual subscription management.
 ///
-/// This mechanism allows Levit to implement "Observation by Access," where
-/// components simply use values and the framework handles subscriptions.
+/// ### Architectural Rationale
+/// Manual subscription management (adding/removing listeners) is complex and
+/// error-prone. By using a proxy-based observer, Levit enables "reactive-by-access"
+/// patterns where dependencies are detected implicitly during execution.
 abstract class LevitReactiveObserver {
-  /// Registers a [stream] dependency.
+  /// Internal: Registers a [Stream] dependency.
   void addStream<T>(Stream<T> stream);
 
-  /// Registers a [notifier] dependency.
+  /// Internal: Registers a [LevitReactiveNotifier] dependency.
   void addNotifier(LevitReactiveNotifier notifier);
 
-  /// Registers the reactive source itself (optional, for DevTools).
-  ///
-  /// Default implementation does nothing. Override to track reactive sources
-  /// for dependency graph visualization.
+  /// Internal: Tracks the reactive source for dependency graph visualization.
   void addReactive(LxReactive reactive) {}
 }
 
-/// A specialized notifier for synchronous reactive updates.
+/// A low-latency notifier for synchronous reactive updates.
 ///
-/// Used internally to propagate changes without [StreamController] overhead.
-/// It implements a propagation queue to handle complex dependency chains efficiently.
+/// [LevitReactiveNotifier] is the high-performance core of the reactive system.
+/// Unlike [StreamController], it provides zero-latency notifications through
+/// synchronous callbacks and implements several optimizations for large-scale
+/// reactive graphs.
+///
+/// ### Performance Optimizations
+/// 1.  **Fast Path**: Direct call for single-listener, no-batch scenarios.
+/// 2.  **Topological Ordering**: Derived values (like computeds) notify only
+///     after their dependencies have updated, preventing "glitches".
+/// 3.  **Deduplication**: Prevents duplicate propagation in complex "diamond"
+///     dependency patterns.
+/// 4.  **Zero-Allocation Snapshots**: Caches listener lists to avoid allocation
+///     during notification cycles.
 class LevitReactiveNotifier {
   void Function()? _singleListener;
   Set<void Function()>? _setListeners;
@@ -295,11 +303,11 @@ class LevitReactiveNotifier {
   // Cache the listener list to avoid allocation on every notify
   List<void Function()>? _notifySnapshot;
 
-  /// Depth in dependency graph (0 = source, higher = derived).
-  /// Used for topological ordering during propagation.
+  /// The distance of this notifier from the primary state sources.
+  /// Used to ensure correct notification order.
   int _graphDepth = 0;
 
-  /// Get the depth of this notifier in the dependency graph.
+  /// Returns the current depth in the dependency graph.
   int get graphDepth => _graphDepth;
 
   /// Set the depth (internal use only by computed values).
@@ -467,24 +475,20 @@ class LevitReactiveNotifier {
   }
 }
 
-/// A reactive wrapper for a value of type [T].
+/// The primary implementation base for reactive objects.
 ///
-/// [LxBase] is the core primitive of Levit's reactive system. It notifies
-/// listeners whenever its value changes.
+/// [LxBase] provides the core mechanics for value storage, stream propagation,
+/// and middleware integration. It combines the capabilities of [LevitReactiveNotifier]
+/// and [LxReactive].
 ///
-/// It supports:
-/// *   **Observation**: Automatically tracked by [LevitReactiveObserver].
-/// *   **Stream Binding**: Can bind to external [Stream]s via [bind].
-/// *   **Middleware**: Supports interceptors for logging and state history.
-///
-/// ## Usage
-/// ```dart
-/// final count = LxInt(0);
-/// // or
-/// final count = 0.lx;
-///
-/// count.value++; // Notifies observers
-/// ```
+/// ### Key Features
+/// 1.  **Value Storage**: Manages the underlying state and its transitions.
+/// 2.  **Stream Integration**: Provides a broadcast [stream] of value changes
+///     and supports [bind]ing to external data sources.
+/// 3.  **Middleware Execution**: Wraps value mutations with interceptors for
+///     logging, diagnostics, or state persistence.
+/// 4.  **Automatic Observation**: Reports state access to the global proxy
+///     to enable auto-tracking.
 abstract class LxBase<T> extends LevitReactiveNotifier
     implements LxReactive<T> {
   static int _nextId = 0;

@@ -31,14 +31,41 @@ LevitScope _createChildScope(BuildContext context, String scopeName) {
   return Levit.createScope(scopeName);
 }
 
-/// A widget that creates and manages a dependency injection scope.
+/// A widget that creates and manages a dependency injection scope bound to the widget tree.
+///
+/// [LScope] is the bridge between Flutter's lifecycle and Levit's [LevitScope].
+/// When this widget is mounted, it creates a child scope and registers the dependency
+/// provided by [init]. When the widget is unmounted, the scope is disposed.
+///
+/// ### Usage
+/// ```dart
+/// LScope(
+///   init: () => MyController(),
+///   child: MyWidget(),
+/// )
+/// ```
+///
+/// ### Architectural Rationale
+/// Manual controller management in `StatefulWidget` often leads to boilerplate
+/// and memory leaks. [LScope] automates this by linking the controller's
+/// [onInit] and [onClose] to Flutter's mounting and unmounting, respectively.
 class LScope<T> extends Widget {
+  /// The builder function used to instantiate the dependency.
   final T Function() init;
+
+  /// The widget subtree that will have access to this scope.
   final Widget child;
+
+  /// Optional unique identifier for the dependency instance.
   final String? tag;
+
+  /// If `true`, the registration survives a non-forced reset of its [LevitScope].
   final bool permanent;
+
+  /// A descriptive name for the scope, used in debugging and profiling.
   final String? name;
 
+  /// Creates a widget-tree-bound dependency scope.
   const LScope({
     super.key,
     required this.init,
@@ -100,12 +127,32 @@ class LScopeElement<T> extends ComponentElement {
   }
 }
 
-/// A widget that manages multiple dependency injection bindings in a single scope.
+/// A widget that manages multiple dependency injection bindings in a single widget-tree scope.
+///
+/// [LMultiScope] is an optimized version of nesting multiple [LScope] widgets.
+/// It creates a single [LevitScope] and registers all provided bindings within it.
+///
+/// ### Usage
+/// ```dart
+/// LMultiScope(
+///   scopes: [
+///     LMultiScopeBinding(() => ControllerA()),
+///     LMultiScopeBinding(() => ControllerB(), tag: 'special'),
+///   ],
+///   child: MyView(),
+/// )
+/// ```
 class LMultiScope extends Widget {
+  /// The list of dependency bindings to register.
   final List<LMultiScopeBinding> scopes;
+
+  /// The widget subtree that will have access to this scope.
   final Widget child;
+
+  /// A descriptive name for the scope.
   final String? name;
 
+  /// Creates a multi-binding dependency scope.
   const LMultiScope({
     super.key,
     required this.scopes,
@@ -213,8 +260,14 @@ class LevitProvider {
   }
 }
 
-/// Extension to access scoped DI via [BuildContext].
+/// Ergonomic extension to access Levit dependency injection directly from [BuildContext].
+///
+/// // Example usage:
+/// ```dart
+/// final controller = context.levit.find<MyController>();
+/// ```
 extension LevitProviderExtension on BuildContext {
+  /// Returns a [LevitProvider] to interact with the nearest active [LevitScope].
   LevitProvider get levit => LevitProvider(this);
 }
 

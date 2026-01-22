@@ -1,150 +1,66 @@
-
 # levit_dart
 
 [![Pub Version](https://img.shields.io/pub/v/levit_dart)](https://pub.dev/packages/levit_dart)
 [![Platforms](https://img.shields.io/badge/platforms-dart-blue)](https://pub.dev/packages/levit_dart)
 [![License: MIT](https://img.shields.io/badge/license-MIT-purple.svg)](https://opensource.org/licenses/MIT)
-[![codecov](https://codecov.io/gh/SoftiLab/levit/graph/badge.svg?token=AESOtS4YPg\&flag=levit_dart)](https://codecov.io/github/atoumbre/levit?flags=levit_dart)
 
-**The core composition layer for pure Dart applications. Explicit. Reactive. Testable.**
+**The core composition layer for pure Dart applications. Explicit. Reactive. Deterministic.**
 
-`levit_dart` is the **non-UI core framework** of the Levit ecosystem. It composes the reactive primitives from `levit_reactive` and the dependency-management model from `levit_scope` into a coherent foundation for building **scalable, deterministic Dart applications**—without any Flutter dependency.
-
-It is designed for shared business logic, servers, background watchers, CLI tools, and any environment where application structure and lifecycle discipline matter.
-
-> **Note**
-> For Flutter applications, use [`levit_flutter`](../levit_flutter), which includes this package and integrates it with the widget tree.
+`levit_dart` is the central orchestrator of the Levit ecosystem for non-UI Dart environments. It composes fine-grained reactive primitives from `levit_reactive` and dependency management from `levit_scope` into a professional framework foundation.
 
 ---
 
-## What `levit_dart` Provides
+## Purpose & Scope
 
-Unlike `levit_reactive` and `levit_scope`, which are standalone primitives, `levit_dart` defines **application-level conventions**:
+`levit_dart` provides a structured, testable model for building business logic without UI dependencies. It is responsible for:
+- Orchestrating the relationship between dependency injection and reactive state.
+- Defining application-level lifecycle conventions for logic components.
+- Providing automated resource management to prevent memory leaks in long-running processes.
 
-* How stateful logic is structured
-* How lifecycles are managed
-* How reactive state and dependencies interact
-
-It turns low-level building blocks into a practical framework for real applications.
-
----
-
-## Features
-
-* **`LevController`**
-  A base class for business logic components with explicit lifecycle management.
-
-* **Task and Async Coordination**
-  Built-in support for structured task execution (idle, running, success, error).
-
-* **Integrated Dependency Injection**
-  Re-exports and standardizes usage of `levit_scope` for service and controller resolution.
-
-* **Integrated Reactivity**
-  Re-exports `levit_reactive` for fine-grained state, computed values, and async state.
-
-* **Pure Dart, No UI Assumptions**
-  Designed to run identically on server, client, and test environments.
+It deliberately avoids UI-specific assumptions, making it suitable for servers, CLI tools, and background services. For Flutter-specific integration, use `levit_flutter`.
 
 ---
 
-## Installation
+## Conceptual Overview
 
-```yaml
-dependencies:
-  levit_dart: ^latest
-```
-
-```dart
-import 'package:levit_dart/levit_dart.dart';
-```
+### Application Elements
+- **`LevitController`**: The fundamental unit of logic. It encapsulates state and behavior, participating in a managed lifecycle.
+- **Ambient Scoping**: Uses Zone-based propagation to resolve dependencies implicitly, reducing boilerplate while maintaining strict isolation.
+- **Auto-Linking**: A mechanism that automatically tracks reactive state created within a controller or registration builder for deterministic cleanup.
 
 ---
 
-## Quick Start
+## Getting Started
 
 ### Define a Controller
-
 ```dart
-class CounterController extends LevController {
-  final count = 0.lx;
+class CounterController extends LevitController {
+  late final count = autoDispose(0.lx);
 
-  void increment() {
-    count.value++;
-  }
+  void increment() => count.value++;
 }
 ```
 
-A `LevController`:
-
-* Owns reactive state
-* Encapsulates business logic
-* Participates in deterministic lifecycle management
-
----
-
-### Register and Use the Controller
-
+### Usage
 ```dart
 void main() {
-  // Register the controller
-  Lev.put(CounterController());
-
-  // Resolve it anywhere
-  final controller = Lev.find<CounterController>();
-
-  // Observe reactive state
-  final disposer = controller.count.listen((value) {
-    print('Count is now: $value');
-  });
-
-  controller.increment(); // Count is now: 1
-
-  disposer();
+  // Register and resolve implicitly
+  Levit.put(() => CounterController());
+  
+  final controller = Levit.find<CounterController>();
+  controller.increment();
 }
 ```
 
-This pattern works identically in:
-
-* Server applications
-* Shared libraries
-* Unit tests
-* Flutter apps (when paired with `levit_flutter`)
-
 ---
 
-## Lifecycle Semantics
+## Design Principles
 
-`LevController` integrates tightly with Levit’s DI and reactive layers:
+### Explicit over Implicit
+While `levit_dart` provides ambient scoping for convenience, every dependency and state transition is trackable and deterministic. There are no "magic" global states.
 
-* `onInit` is called once after construction
-* Reactive resources are tracked automatically
-* `onDispose` is invoked when the controller or its scope is destroyed
+### Composition over Inheritance
+The framework encourages composing logic within controllers rather than deep inheritance hierarchies. Lifecycle hooks are designed to be predictable and easy to mock.
 
-This makes controllers safe, predictable, and easy to test.
-
----
-
-## When to Use `levit_dart`
-
-Use `levit_dart` when you need:
-
-* A structured way to write application logic in Dart
-* Deterministic state and lifecycle handling
-* Shared business logic across multiple runtimes
-
-For UI binding and widget-tree scoping, add **`levit_flutter`**.
-For lower-level control, you can use **[`levit_reactive`](../levit_reactive)** or **[`levit_scope`](../levit_scope)** directly.
-
----
-
-## Design Philosophy
-
-`levit_dart` exists to enforce **discipline without rigidity**:
-
-* Explicit over implicit
-* Composition over inheritance
-* Determinism over convenience
-
-It provides just enough structure to scale, while remaining flexible enough to adapt to different architectures.
-
+### Deterministic Lifecycle
+Resources are never left to the garbage collector alone. The `autoDispose` mechanism ensures that streams, timers, and reactive objects are closed as soon as their owning controller is removed from its scope.

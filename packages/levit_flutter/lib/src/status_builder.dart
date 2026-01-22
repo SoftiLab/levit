@@ -3,13 +3,14 @@ import 'package:levit_dart/levit_dart.dart';
 
 import 'watch.dart';
 
-/// A unified widget for handling the various states of an asynchronous operation.
+/// A declarative widget for handling the various states of an asynchronous operation.
 ///
-/// [LStatusBuilder] simplifies the UI logic for [LxStatus] (Idle, Waiting, Success, Error).
-/// It works seamlessly with [LxFuture], [LxStream], [LxAsyncComputed], or any
-/// reactive variable holding an [LxStatus].
+/// [LStatusBuilder] simplifies rendering logic for [LxStatus] transitions
+/// (Idle, Waiting, Success, Error). It integrates with [LxFuture], [LxStream],
+/// [LxAsyncComputed], or any reactive variable holding an [LxStatus].
 ///
-/// Under the hood, it uses [LWatch] to automatically listen for status changes.
+/// It uses [LWatch] internally to ensure fine-grained rebuilds when the status
+/// changes.
 ///
 /// ```dart
 /// // 1. From an existing reactive source (default)

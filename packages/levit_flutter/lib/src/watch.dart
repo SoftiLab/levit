@@ -3,12 +3,32 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:levit_dart/levit_dart.dart';
 
-/// A reactive widget that automatically rebuilds when accessed [Lx] values change.
+/// A reactive widget that automatically rebuilds when accessed [LxReactive] values change.
+///
+/// [LWatch] is the primary bridge between the reactive state in your controllers
+/// and the Flutter UI. It uses a "proxy-based tracking" mechanism to detect
+/// which reactive variables are used during the execution of its [builder].
+///
+/// ### Usage
+/// Simply wrap any widget that depends on reactive state in an [LWatch].
+///
+/// // Example usage:
+/// ```dart
+/// final count = 0.lx;
+///
+/// LWatch(() => Text('Count: ${count.value}'))
+/// ```
+///
+/// ### Architectural Rationale
+/// Traditionally, Flutter requires manual listeners or broad rebuilds via
+/// `setState`. [LWatch] provides fine-grained updates by only rebuilding the
+/// specific subtree that depends on the changed state, significantly improving
+/// performance in complex UIs.
 class LWatch extends Widget {
-  /// The builder function that constructs the widget tree.
+  /// The builder function that constructs the reactive widget tree.
   final Widget Function() builder;
 
-  /// An optional label for debugging purposes.
+  /// An optional label for debugging and performance profiling.
   final String? debugLabel;
 
   /// Creates a reactive [LWatch] widget.
@@ -220,20 +240,27 @@ class LWatchElement extends ComponentElement implements LevitReactiveObserver {
   }
 }
 
-/// A reactive widget that observes a single specific reactive value.
+/// A reactive widget that observes a single, specific reactive value.
 ///
-/// Unlike [LWatch], which tracks dependencies automatically, [LConsumer]
-/// requires you to explicitly provide the reactive variable [LxVar]. This avoids
-/// the overhead of the proxy mechanism and can be slightly more performant
-/// for simple use cases.
+/// Unlike [LWatch], which tracks dependencies automatically using a proxy,
+/// [LConsumer] requires you to explicitly provide the reactive object to watch.
+///
+/// ### Usage
+/// Use [LConsumer] when you want to be explicit about dependencies or when
+/// avoiding the minor overhead of automatic tracking.
+///
+/// // Example usage:
+/// ```dart
+/// LConsumer(myCount, (count) => Text('Value: ${count.value}'))
+/// ```
 class LConsumer<T extends LxReactive> extends Widget {
-  /// The builder function that receives the reactive value.
-  final Widget Function(T value) builder;
+  /// The builder function that receives the specific reactive instance [x].
+  final Widget Function(T x) builder;
 
-  /// The reactive value to observe.
+  /// The reactive instance to observe.
   final T x;
 
-  /// Creates a widget that watches the specific reactive object [x].
+  /// Creates a widget that specifically watches the reactive object [x].
   const LConsumer(this.x, this.builder, {super.key});
 
   @override

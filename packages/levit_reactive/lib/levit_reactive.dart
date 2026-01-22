@@ -1,43 +1,17 @@
 /// Pure Dart reactive state management primitives.
 ///
-/// This library provides the reactive engine for the Levit framework.
-/// It has zero Flutter dependencies and can be used in any Dart environment (Flutter, CLI, server-side).
+/// This package provides the low-level reactive engine of the Levit framework.
+/// It is dependency-free and focuses on high-performance, fine-grained state
+/// tracking using a proxy-based mechanism.
 ///
-/// ## Core Classes
+/// ### Core Abstractions
+/// *   [LxReactive]: The base interface for all reactive objects.
+/// *   [Lx]: The primary entry point for creating reactive variables and managing
+///     the global reactive state (proxies, batches, middlewares).
+/// *   [LxComputed]: Derived reactive state that automatically tracks dependencies.
 ///
-/// *   **[Lx]**: Base reactive wrapper for any type.
-/// *   **[LxList]**: Reactive list with automatic change detection.
-/// *   **[LxMap]**: Reactive map with automatic change detection.
-///
-/// ## Async Reactive Types
-///
-/// *   **[LxStatus]**: Sealed status type (`LxIdle`, `LxWaiting`, `LxSuccess`, `LxError`).
-/// *   **[LxFuture]**: Reactive wrapper for [Future].
-/// *   **[LxStream]**: Reactive wrapper for [Stream].
-/// *   **[LxComputed]**: Auto-tracking computed value (sync).
-/// *   **[LxAsyncComputed]**: Async computed value.
-///
-/// ## Watchers
-///
-/// *   **[watch]**: Core watcher with support for stream transforms (debounce, throttle, etc.).
-/// *   **[watchTrue]**: Fires callback when source becomes true.
-/// *   **[watchFalse]**: Fires callback when source becomes false.
-/// *   **[watchValue]**: Fires callback when source matches target value.
-///
-/// ## Usage
-///
-/// ```dart
-/// final count = 0.lx;
-/// final user = LxFuture(fetchUser());
-///
-/// // Watch any reactive source
-/// watch(count, (v) => print('Count: $v'));
-///
-/// // Or with status handling
-/// watch(user, (status) => print('Status: $status'));
-///
-/// count.value++;
-/// ```
+/// `levit_reactive` is designed to be the foundational layer for any Dart
+/// application requiring deterministic state derivation.
 library;
 
 export 'src/async_status.dart';

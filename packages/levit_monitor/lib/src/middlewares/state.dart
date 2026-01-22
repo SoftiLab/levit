@@ -6,23 +6,29 @@ import '../core/event.dart';
 import '../transports/console_transport.dart';
 import '../../levit_monitor.dart' show LevitMonitor;
 
-/// The unified Levit middleware for monitoring and DevTools integration.
+/// The foundational middleware that connects the Levit ecosystem to the monitor.
+///
+/// [LevitMonitorMiddleware] implements the [LevitMiddleware] interface to
+/// intercept and capture lifecycle events from across the entire framework.
+/// It acts as the bridge between internal state transitions and the external
+/// [LevitTransport].
 class LevitMonitorMiddleware extends LevitMiddleware {
   bool _enabled = false;
 
-  /// Session-wide unique identifier for correlating events.
+  /// A session identifier generated at initialization to correlate events
+  /// within a single application run.
   late final String sessionId;
 
-  /// Whether to include stack traces in the log output (legacy, handled by transport now).
+  /// Whether to capture and include stack trace information for events.
   bool includeStackTrace;
 
-  /// The transport used to send events.
+  /// The primary destination for captured events.
   LevitTransport transport;
 
   final StreamController<MonitorEvent> _eventStream = StreamController();
   StreamSubscription<MonitorEvent>? _subscription;
 
-  /// Creates a unified Levit monitor middleware.
+  /// Creates a monitor middleware instance.
   LevitMonitorMiddleware({
     LevitTransport? transport,
     this.includeStackTrace = false,
@@ -31,6 +37,7 @@ class LevitMonitorMiddleware extends LevitMiddleware {
     this.sessionId = sessionId ?? _generateSessionId();
   }
 
+  /// Activates the middleware and registers it with the global [Levit] registry.
   void enable() {
     if (!_enabled) {
       Levit.addMiddleware(this);
@@ -41,6 +48,7 @@ class LevitMonitorMiddleware extends LevitMiddleware {
     }
   }
 
+  /// Deactivates the middleware and stops event processing.
   void disable() {
     if (_enabled) {
       Levit.removeMiddleware(this);
@@ -50,6 +58,7 @@ class LevitMonitorMiddleware extends LevitMiddleware {
     }
   }
 
+  /// Swaps the active transport or updates configuration dynamically.
   void updateTransport({
     LevitTransport? transport,
     bool? includeStackTrace,
@@ -74,7 +83,9 @@ class LevitMonitorMiddleware extends LevitMiddleware {
     }
   }
 
-  // --- Reactive Middleware Implementation ---
+  // ---------------------------------------------------------------------------
+  // Reactive Middleware Implementation
+  // ---------------------------------------------------------------------------
 
   @override
   void onReactiveRegister(LxReactive reactive, String ownerId) {
@@ -146,7 +157,9 @@ class LevitMonitorMiddleware extends LevitMiddleware {
         ));
       };
 
-  // --- Scope Observer Implementation ---
+  // ---------------------------------------------------------------------------
+  // Scope Observer Implementation
+  // ---------------------------------------------------------------------------
 
   @override
   void onRegister(
@@ -220,7 +233,7 @@ class LevitMonitorMiddleware extends LevitMiddleware {
     };
   }
 
-  /// Closes the transport.
+  /// Closes the event stream and releases the underlying transport.
   void close() {
     _eventStream.close();
     _subscription?.cancel();

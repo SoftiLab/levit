@@ -5,15 +5,17 @@ part of '../levit_dart.dart';
 /// [LevitMiddleware] combines the capabilities of [LevitReactiveMiddleware] (for reactive
 /// state changes) and [LevitScopeMiddleware] (for dependency injection events).
 ///
+/// ### Architectural Rationale
 /// Use this class to create integrated tools like loggers, analytics trackers,
-/// or devtools bridges that require a holistic view of the application state
-/// and its structure.
+/// or devtools bridges that require a holistic view of both application state
+/// transitions and dependency lifecycle events.
 abstract class LevitMiddleware extends LevitReactiveMiddleware
     implements LevitScopeMiddleware {
-  /// Called when a reactive variable is registered with its owner.
+  /// Callback invoked when a reactive variable is registered with its owner.
   ///
-  /// * [reactive]: The reactive variable being registered.
-  /// * [ownerId]: The registration key of the owner (typically a [LevitController]).
+  /// Parameters:
+  /// - [reactive]: The reactive variable instance being registered.
+  /// - [ownerId]: The unique identifier of the owner (typically a [LevitController]).
   void onReactiveRegister(LxReactive reactive, String ownerId) {}
 
   // --- LevitScopeMiddleware Implementation ---

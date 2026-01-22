@@ -3,74 +3,73 @@ import 'dart:async';
 import 'package:meta/meta.dart';
 import 'middleware.dart';
 
-/// Interface for objects that require lifecycle management.
+/// Interface for objects that require explicit lifecycle management within a [LevitScope].
 ///
-/// Implement this interface in your controllers or services to receive callbacks
-/// when the object is initialized ([onInit]) or disposed ([onClose]).
+/// Implement this interface in controllers or services to participate in
+/// deterministic initialization ([onInit]) and cleanup ([onClose]).
+///
+/// ### Architectural Rationale
+/// Manual resource management is prone to errors. By implementing this interface,
+/// components can ensure their internal state is initialized only when requested
+/// and cleaned up immediately when no longer needed, preventing memory leaks
+/// and stale listeners.
 abstract class LevitScopeDisposable {
   /// Base constructor.
   const LevitScopeDisposable();
 
-  /// Called immediately after the instance is registered via [Levit.put] or
-  /// instantiated via [Levit.lazyPut] or [Levit.find].
+  /// Callback invoked after the instance is instantiated but before it is used.
   ///
-  /// Use this method for setup logic, such as initializing variables or
-  /// starting listeners.
+  /// Use this method for isolated setup logic such as starting persistent
+  /// listeners or initializing reactive variables.
   void onInit() {}
 
-  /// Called when the instance is attached to a [LevitScope].
+  /// Callback invoked when the instance is attached to its owning [LevitScope].
   ///
-  /// Override this method to receive a reference to your scope, or to perform
-  /// post-resolution setup that requires scope access.
+  /// Parameters:
+  /// - [scope]: The [LevitScope] that manages this object.
+  /// - [key]: The unique registration key within the scope.
   ///
-  /// * [scope]: The [LevitScope] that created/owns this object.
-  /// * [key]: The registration key (e.g. "MyController" or "MyController_tag").
-  ///
-  /// Note: This is called AFTER [onInit] completes.
+  /// This is called after [onInit] and before the instance is returned to callers.
   void didAttachToScope(LevitScope scope, {String? key}) {}
 
-  /// Called when the instance is removed from the container via [Levit.delete]
-  /// or during a [Levit.reset] call.
+  /// Callback invoked when the instance is disposed.
   ///
-  /// Use this method for cleanup logic, such as closing streams or disposing
-  /// of other resources.
+  /// This occurs when the instance is explicitly removed via [LevitScope.delete]
+  /// or when its owning scope is disposed. Use this method to cancel timers,
+  /// close streams, or release other system resources.
   void onClose() {}
 }
 
-/// Holds metadata about a registered dependency instance.
+/// Holds metadata and the instance of a registered dependency.
 ///
-/// This class tracks the lifecycle state, creation strategy (factory, lazy, etc.),
-/// and the instance itself.
-///
-/// It exists to support the internal mechanisms of [LevitScope] and is typically
-/// not used directly by application code.
+/// [LevitDependency] tracks the lifecycle state, creation strategy, and
+/// persistence of a dependency within a [LevitScope].
 class LevitDependency<S> {
-  /// The actual instance, or `null` if it is a lazy registration that has not
-  /// yet been instantiated.
+  /// The resolved instance, or `null` if not yet instantiated.
   S? instance;
 
-  /// The builder function for lazy instantiation.
+  /// The synchronous builder function for lazy instantiation.
   final S Function()? builder;
 
-  /// The async builder function for lazy asynchronous instantiation.
+  /// The asynchronous builder function for lazy instantiation.
   final Future<S> Function()? asyncBuilder;
 
-  /// Whether the instance should persist even when a reset is requested (unless forced).
+  /// If `true`, the registration survives a non-forced [LevitScope.reset].
   final bool permanent;
 
-  /// Whether this registration was made via `lazyPut`.
+  /// If `true`, the dependency is deferred until first requested.
   final bool isLazy;
 
-  /// Whether this registration is a factory (creates a new instance every time).
+  /// If `true`, a new instance is created for every resolution request.
   final bool isFactory;
 
-  /// Returns `true` if the lazy instance has been created.
+  /// Returns `true` if the instance has been created.
   bool get isInstantiated => instance != null;
 
   /// Returns `true` if this registration uses an asynchronous builder.
   bool get isAsync => asyncBuilder != null;
 
-  /// Creates a new [LevitDependency] with the specified configuration.
+  /// Internal constructor for creating dependency metadata.
   LevitDependency({
     this.instance,
     this.builder,
@@ -81,15 +80,24 @@ class LevitDependency<S> {
   });
 }
 
-/// A scoped dependency injection container.
+/// A hierarchical dependency injection container.
 ///
-/// [LevitScope] manages a registry of dependencies. Scopes can be nested;
-/// child scopes can override parent dependencies locally and automatically
-/// clean up their own resources when disposed. Dependency lookups fall back
-/// to the parent scope if the key is not found locally.
+/// [LevitScope] manages a registry of dependencies and their lifecycles.
+/// Scopes can be nested to form a tree; child scopes can override parent
+/// dependencies and provide isolated environments for features or tests.
 ///
-/// Use this class to create isolated environments for tests or modular parts
-/// of your application (e.g., authenticated vs. guest scope).
+/// ### Scoping Rules
+/// 1.  **Resolution**: When [find] is called, the scope searches its local
+///     registry. If not found, it recursively searches its parent scopes.
+/// 2.  **Isolation**: Dependencies registered in a child scope are not
+///     visible to parent scopes.
+/// 3.  **Cleanup**: Disposing a scope automatically disposes all dependencies
+///     registered within it that implement [LevitScopeDisposable].
+///
+/// ### Architectural Rationale
+/// Scoping allows for deterministic resource management and modularity. It
+/// enables patterns like "User Scopes" (where services are tied to a session)
+/// or "Feature Scopes" (where resources are allocated only while a feature is active).
 class LevitScope {
   /// Static counter for generating unique scope IDs.
   static int _nextId = 0;
@@ -128,19 +136,22 @@ class LevitScope {
   /// Creates a new root [LevitScope].
   factory LevitScope.root([String? name]) => LevitScope._(name ?? 'root');
 
-  /// Registers a dependency instance in this scope.
+  /// Instantiates and registers a dependency instance in this scope.
   ///
-  /// The [builder] is executed immediately, wrapped in any registered hooks
-  /// to enable automatic capture of reactive variables.
+  /// The [builder] is executed immediately. If an instance of type [S] with
+  /// the same [tag] already exists, it is replaced and the old instance is disposed.
   ///
-  /// If an instance with the same type and [tag] already exists, it is replaced.
-  /// If the existing instance implements [LevitScopeDisposable], its [LevitScopeDisposable.onClose] method is called.
+  /// // Example usage:
+  /// ```dart
+  /// scope.put(() => AuthService());
+  /// ```
   ///
-  /// If the created instance implements [LevitScopeDisposable], its [LevitScopeDisposable.onInit] method is called immediately.
+  /// Parameters:
+  /// - [builder]: A function that creates the instance.
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the instance survives a non-forced [reset].
   ///
-  /// *   [builder]: A function that creates the instance.
-  /// *   [tag]: An optional tag to distinguish multiple instances of the same type.
-  /// *   [permanent]: If `true`, the instance will not be removed during a non-forced reset.
+  /// Returns the created instance of type [S].
   S put<S>(S Function() builder, {String? tag, bool permanent = false}) {
     final key = _getKey<S>(tag);
 
@@ -259,13 +270,15 @@ class LevitScope {
     _notifyRegister(key, info, source);
   }
 
-  /// Finds and returns the registered instance of type [S].
+  /// Retrieves the registered instance of type [S].
   ///
-  /// If the instance is not found in the current scope, the parent scope is checked.
+  /// If the dependency is not found in the current scope, it recursively
+  /// searches parent scopes.
   ///
-  /// Throws an [Exception] if the dependency is not registered.
+  /// Parameters:
+  /// - [tag]: Optional unique identifier used during registration.
   ///
-  /// *   [tag]: An optional tag to specify the instance.
+  /// Throws an [Exception] if no registration is found for [S] and [tag].
   S find<S>({String? tag}) {
     // ULTRA-FAST PATH: Direct instance cache lookup (no indirection)
     if (tag == null) {

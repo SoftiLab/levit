@@ -1,10 +1,20 @@
 import 'event.dart';
 
-/// Interface for transporting [MonitorEvent]s to external systems.
+/// Interface for dispatching diagnostic events to external sinks.
+///
+/// [LevitTransport] defines how [MonitorEvent]s are delivered to developers,
+/// logs, or visualization tools. Implementations can range from simple
+/// console printing to complex network-based telemetry.
 abstract class LevitTransport {
-  /// Sends a monitor event to the transport destination.
+  /// Dispatches the [event] to the transport destination.
+  ///
+  /// This method is called by the monitor whenever an event passes through
+  /// the active filtering pipeline.
   void send(MonitorEvent event);
 
-  /// Closes the transport connection. Override for cleanup.
+  /// Releases resources and closes any active connections.
+  ///
+  /// This method should be called when the transport is no longer needed,
+  /// typically during [LevitMonitor.detach].
   void close() {}
 }

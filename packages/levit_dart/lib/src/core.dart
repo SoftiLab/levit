@@ -1,19 +1,20 @@
 part of '../levit_dart.dart';
 
-/// The primary entry point for managing dependencies and scopes in Levit.
+/// The primary entry point for managing dependencies and ambient scopes in Levit.
 ///
 /// [Levit] provides a unified, static interface for interacting with the
-/// dependency injection (DI) system. It simplifies access to the current
-/// [LevitScope] by using [Zone]-based implicit propagation.
+/// dependency injection (DI) system. It leverages [Zone]-based implicit propagation
+/// to simplify access to the current [LevitScope].
 ///
-/// In a Levit application, dependencies are stored within a [LevitScope].
-/// By default, [Levit] operations target the root scope. However, when code
-/// is executed within a nested scope using [LevitScope.run], this class
-/// automatically detects and targets that active scope.
+/// In a Levit application, dependencies reside within a [LevitScope]. By default,
+/// [Levit] operations target the root scope. When code is executed within a nested
+/// scope using [LevitScope.run], this class automatically detects and targets
+/// that active scope.
 ///
-/// This "ambient" scope behavior allows components to find their dependencies
-/// without requiring manual scope passing, while still supporting isolation
-/// for features like modularity or testing.
+/// ### Architectural Rationale
+/// This "ambient" scope behavior allows components to resolve dependencies without
+/// manual scope passing, ensuring decoupling while maintaining deterministic
+/// isolation for testing and modularity.
 class Levit {
   static final LevitScope _root = () {
     return LevitScope.root();
@@ -37,12 +38,18 @@ class Levit {
   /// Instantiates and registers a dependency using a [builder].
   ///
   /// The [builder] is executed immediately. If [Levit.enableAutoLinking] is
-  /// active, any reactive variables (like [Lx]) created during execution are
-  /// automatically captured and linked to the resulting instance for cleanup.
+  /// active, any reactive variables created during execution are automatically
+  /// captured and linked to the resulting instance for cleanup.
   ///
-  /// * [builder]: A function that creates the dependency instance.
-  /// * [tag]: Optional unique identifier to allow multiple instances of the same type [S].
-  /// * [permanent]: If `true`, this instance survives a non-forced [reset].
+  /// // Example usage:
+  /// ```dart
+  /// final service = Levit.put(() => MyService());
+  /// ```
+  ///
+  /// Parameters:
+  /// - [builder]: A function that creates the dependency instance.
+  /// - [tag]: Optional unique identifier to allow multiple instances of the same type [S].
+  /// - [permanent]: If `true`, this instance survives a non-forced [reset].
   ///
   /// Returns the created instance of type [S].
   static S put<S>(S Function() builder, {String? tag, bool permanent = false}) {
@@ -51,10 +58,11 @@ class Levit {
 
   /// Registers a [builder] that will be executed only when the dependency is first requested.
   ///
-  /// * [builder]: A function that creates the dependency instance.
-  /// * [tag]: Optional unique identifier for the instance.
-  /// * [permanent]: If `true`, the registration persists through a [reset].
-  /// * [isFactory]: If `true`, a new instance is created every time [find] is called.
+  /// Parameters:
+  /// - [builder]: A function that creates the dependency instance.
+  /// - [tag]: Optional unique identifier for the instance.
+  /// - [permanent]: If `true`, the registration persists through a [reset].
+  /// - [isFactory]: If `true`, a new instance is created every time [find] is called.
   static void lazyPut<S>(S Function() builder,
       {String? tag, bool permanent = false, bool isFactory = false}) {
     _currentScope.lazyPut<S>(builder,
@@ -126,8 +134,9 @@ class Levit {
   ///
   /// If the instance implements [LevitScopeDisposable], its `onClose` method is called.
   ///
-  /// * [tag]: The unique identifier used during registration.
-  /// * [force]: If `true`, deletes even if the dependency was marked as `permanent`.
+  /// Parameters:
+  /// - [tag]: The unique identifier used during registration.
+  /// - [force]: If `true`, deletes even if the dependency was marked as `permanent`.
   ///
   /// Returns `true` if a registration was found and removed.
   static bool delete<S>({String? tag, bool force = false}) {
@@ -215,9 +224,12 @@ class Levit {
 
   /// Enables the "Auto-Linking" feature.
   ///
-  /// When enabled, any [Lx] variable created inside a [Levit.put] builder or
+  /// When enabled, any [LxReactive] variable created inside a [Levit.put] builder or
   /// [LevitController.onInit] is automatically registered for cleanup with
   /// its parent controller.
+  ///
+  /// This ensures that transient state created within business logic components
+  /// is deterministically cleaned up without manual tracking.
   static void enableAutoLinking() {
     Lx.addMiddleware(_autoLinkMiddleware);
     LevitScope.addMiddleware(_AutoDisposeMiddleware());

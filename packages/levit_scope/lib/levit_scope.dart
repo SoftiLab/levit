@@ -1,12 +1,11 @@
-/// Pure Dart dependency injection and service locator.
+/// Type-safe, hierarchical dependency injection for Dart.
 ///
-/// This library provides the core dependency injection mechanism of the Levit framework.
-/// It supports:
+/// This package provides the core dependency injection mechanism of the Levit framework:
+/// *   [LevitScope]: A scoped container for managing dependency lifecycles.
+/// *   [LevitScopeDisposable]: An interface for objects that require explicit initialization or disposal.
 ///
-/// *   Singleton and factory registrations.
-/// *   Lazy and async initialization.
-/// *   Hierarchical scoping ([LevitScope]).
-/// *   Lifecycle management via [LevitScopeDisposable].
+/// `levit_scope` focuses on deterministic resource management and explicit scoping
+/// without reliance on code generation or reflection.
 library;
 
 export 'src/core.dart' hide LevitScopeMiddlewareChain;

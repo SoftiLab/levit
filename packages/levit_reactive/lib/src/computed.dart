@@ -6,17 +6,20 @@ import 'global_accessor.dart';
 import 'middlewares.dart';
 import 'async_status.dart';
 
-/// A synchronous computed reactive value that tracks dependencies automatically.
+/// A synchronous computed value that automatically tracks its reactive dependencies.
 ///
-/// Computed values are memoized and lazy. They only re-evaluate when their
-/// dependencies change and they are being listened to.
+/// [LxComputed] represents state derived from other reactive variables. It is:
+/// 1.  **Lazy**: Its value is only calculated when requested.
+/// 2.  **Memoized**: It caches its result and only re-evaluates when its
+///     dependencies change.
+/// 3.  **Automatic**: It detects dependencies implicitly by tracking which
+///     [LxReactive] values are read during its execution.
 ///
-/// Use [LxComputed] to derive state from other reactive variables without
-/// manually managing subscriptions.
-///
+/// ### Usage
 /// ```dart
-/// final count = 0.lx;
-/// final doubled = LxComputed(() => count.value * 2);
+/// final firstName = 'John'.lx;
+/// final lastName = 'Doe'.lx;
+/// final fullName = LxComputed(() => '${firstName.value} ${lastName.value}');
 /// ```
 class LxComputed<T> extends _ComputedBase<T> {
   final T Function() _compute;
@@ -239,14 +242,20 @@ class LxComputed<T> extends _ComputedBase<T> {
   String toString() => 'LxComputed($value)';
 }
 
-/// An asynchronous computed reactive value.
+/// An asynchronous computed value that reflects state transitions via [LxStatus].
 ///
-/// Wraps the result in an [LxStatus]. Like [LxComputed], it tracks
-/// dependencies automatically, even across async gaps.
+/// [LxAsyncComputed] is used to derive state through asynchronous operations.
+/// Like [LxComputed], it automatically tracks dependencies accessed during
+/// its execution, even across asynchronous gaps.
 ///
+/// ### Async Tracking
+/// Levit uses specialized [Zone] integration to ensure that reactive variables
+/// read after an `await` are still correctly registered as dependencies.
+///
+/// ### Usage
 /// ```dart
 /// final userId = 1.lx;
-/// final user = LxComputed.async(() => fetchUser(userId.value));
+/// final user = LxAsyncComputed(() => fetchUser(userId.value));
 /// ```
 class LxAsyncComputed<T> extends _ComputedBase<LxStatus<T>> {
   final Future<T> Function() _compute;

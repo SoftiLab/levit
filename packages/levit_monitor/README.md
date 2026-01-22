@@ -1,39 +1,84 @@
 # Levit Monitor
 
-A comprehensive monitoring and observability package for the Levit framework.
+A unified observability and diagnostics engine for the Levit ecosystem.
 
-## Features
+`levit_monitor` provides deep visibility into the runtime behavior of your application by capturing and correlating events from both the dependency injection system (`levit_dart`) and the reactive state engine (`levit_reactive`).
 
-- **Unified Monitoring**: Captures both Reactive State changes (`Lx`) and Dependency Injection events (`Levit`).
-- **DevTools Integration**: Built-in WebSocket transport for connecting to external visualizers (like Levit DevTools).
-- **Zero-Config**: Works out of the box with standard defaults.
+## Key Features
 
-## Usage
+- **Unified Diagnostics**: A single pipeline for monitoring service lifecycles, dependency resolutions, and state mutations.
+- **Pluggable Transports**: Multiple built-in transports (Console, File, WebSocket) for local debugging or external DevTools integration.
+- **Monotonic Correlation**: Events are tagged with sequence numbers and session IDs to enable precise debugging across asynchronous gaps.
+- **Predicated Filtering**: Granular control over volume and type of captured diagnostic data.
 
-### Connecting to DevTools
+## Getting Started
 
-To connect your application to an external DevTools instance (e.g., running on `localhost:8080`), simply attach the monitor with a `WebSocketTransport` at the start of your app:
+### Installation
+
+Add `levit_monitor` to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  levit_monitor: latest
+```
+
+### Basic Attachment
+
+The simplest way to start monitoring is to attach the default monitor at the entry point of your application. By default, it uses the `ConsoleTransport` to log JSON events to standard output.
 
 ```dart
 import 'package:levit_monitor/levit_monitor.dart';
-import 'package:web_socket_channel/io.dart'; // or html for web
 
 void main() {
-  // 1. Create the transport
-  final channel = IOWebSocketChannel.connect('ws://localhost:8080/ws');
-  final transport = WebSocketTransport(channel);
-
-  // 2. Attach the monitor
-  LevitMonitor.attach(transport: transport);
-
-  // ... run your app ...
+  LevitMonitor.attach(); // Starts capturing events immediately
+  
+  // Your app entry
+  runApp(MyApp());
 }
 ```
 
-### Manual Logging
+## Advanced Configuration
 
-For simple debugging, you can use the default `ConsoleTransport` which logs events to the terminal:
+### Using WebSockets for DevTools
+
+To connect your application to an external visualizer (like Levit DevTools), use the `WebSocketTransport`:
 
 ```dart
-LevitMonitor.attach(); // Uses ConsoleTransport by default
+import 'package:levit_monitor/levit_monitor.dart';
+import 'package:web_channel/io.dart'; 
+
+void main() {
+  final channel = IOWebSocketChannel.connect('ws://localhost:8080/ws');
+  final transport = WebSocketTransport(channel);
+
+  LevitMonitor.attach(transport: transport);
+  
+  runApp(MyApp());
+}
 ```
+
+### Event Filtering
+
+You can suppress noisy events or focus on specific diagnostic categories using a global filter:
+
+```dart
+// Only monitor state mutations, ignoring DI and graph changes
+LevitMonitor.setFilter((event) => event is ReactiveChangeEvent);
+```
+
+## Built-in Transports
+
+- **ConsoleTransport**: Prettified or raw JSON logging to the terminal.
+- **FileTransport**: Persists diagnostic events to the local filesystem.
+- **WebSocketTransport**: Streams events to remote servers or DevTools.
+
+## Monitoring Schema
+
+All events follow a unified schema:
+
+| Property | Description |
+| :--- | :--- |
+| `seq` | Monotonic sequence number. |
+| `timestamp` | UTC ISO-8601 timestamp of the event. |
+| `sessionId` | Correlates events within a single execution run. |
+| `type` | The specific event identifier (e.g., `state_change`, `di_resolve`). |
