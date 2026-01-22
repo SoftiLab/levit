@@ -13,10 +13,10 @@ dependencies:
 
   # Transports
   web_socket_channel: ^3.0.3
+  logger: ^2.6.2
   
   # Annotations
   meta: ^1.17.0
-  logger: ^2.6.2
 
 dev_dependencies:
   test: ^1.24.0
