@@ -4,9 +4,9 @@
 
 | Package | Lines Covered | Total Lines | Coverage |
 | :--- | :--- | :--- | :--- |
-| example | 20 | 20 | **100.00%** |
+| levit_dart_kit | 221 | 221 | **100.00%** |
 | --- | --- | --- | --- |
-| **GLOBAL** | **20** | **20** | **100.00%** |
+| **GLOBAL** | **221** | **221** | **100.00%** |
 
 ## 📝 Uncovered Lines Details
 

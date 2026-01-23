@@ -22,7 +22,7 @@ dev_dependencies:
   async: ^2.11.0
   stream_channel: ^2.1.1
 
-  levit_monitor: ^0.0.1
+  levit_monitor: ^0.0.4
 
 flutter:
   uses-material-design: true

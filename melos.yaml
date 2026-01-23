@@ -39,11 +39,11 @@ scripts:
         - levit_stress_tests
 
   coverage:
-    run: dart run scripts/check_coverage.dart
+    run: dart run tools/scripts/check_coverage.dart
     description: Run coverage checks
 
   stress:
-    run: dart run scripts/stress_test.dart
+    run: dart run tools/scripts/stress_test.dart
     description: Run stress tests
 
   format:

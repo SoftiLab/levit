@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:levit_dart/levit_dart.dart';
@@ -205,6 +206,34 @@ mixin LevitTasksMixin on LevitController {
     _tasksEngine.cancelAll();
     super.onClose();
   }
+
+  /// Executes a [task] in a separate [Isolate] using [Isolate.run].
+  ///
+  /// This is ideal for heavy computational tasks that would otherwise block
+  /// the main isolate. It leverages [runTask] internally for queueing and retries.
+  ///
+  /// **Constraint**: The [task] must be a top-level function or a static method.
+  Future<T?> runIsolateTask<T>(
+    FutureOr<T> Function() task, {
+    String? id,
+    TaskPriority priority = TaskPriority.normal,
+    int retries = 0,
+    Duration? retryDelay,
+    bool useExponentialBackoff = true,
+    void Function(Object error, StackTrace stackTrace)? onError,
+    TaskCachePolicy<T>? cachePolicy,
+  }) {
+    return runTask(
+      () => Isolate.run(task),
+      id: id,
+      priority: priority,
+      retries: retries,
+      retryDelay: retryDelay,
+      useExponentialBackoff: useExponentialBackoff,
+      onError: onError,
+      cachePolicy: cachePolicy,
+    );
+  }
 }
 
 /// A mixin for [LevitController] that combines task management with reactive state.
@@ -251,6 +280,9 @@ mixin LevitReactiveTasksMixin on LevitController {
   /// of concurrent tasks, accessing this frequently triggers an O(N) loop.
   late final LxComputed<double> totalProgress;
 
+  /// Helper property to check if any tasks are running.
+  late final LxComputed<bool> isBusy;
+
   /// Optional global error handler for tasks in this controller.
   void Function(Object error, StackTrace? stackTrace)? onTaskError;
 
@@ -266,14 +298,7 @@ mixin LevitReactiveTasksMixin on LevitController {
     super.onInit();
     _reactiveTasksEngine = _TaskEngine(maxConcurrent: maxConcurrentTasks);
 
-    // Initialize reactive state
-    // Moved to field declaration to support implicit registration (constructor-phase capture)
-    // Manually register for auto-disposal to support usage without DI/auto-registration
-    autoDispose(tasks);
-    autoDispose(taskWeights);
-    autoDispose(taskProgress);
-
-    totalProgress = LxComputed<double>(() {
+    totalProgress = (() {
       if (tasks.isEmpty) return 0.0;
       double sumProgress = 0;
       double sumWeight = 0;
@@ -293,7 +318,19 @@ mixin LevitReactiveTasksMixin on LevitController {
       }
 
       return sumWeight == 0 ? 0.0 : sumProgress / sumWeight;
-    }).named('totalProgress');
+    }).lx.named('totalProgress');
+
+    isBusy = (() =>
+        _reactiveTasksEngine._queue.isNotEmpty ||
+        _reactiveTasksEngine._activeTasks.isNotEmpty).lx.named('isBusy');
+
+    // Initialize reactive state
+    // Manually register for auto-disposal to support usage without DI/auto-registration
+    autoDispose(tasks);
+    autoDispose(taskWeights);
+    autoDispose(taskProgress);
+    autoDispose(isBusy);
+    autoDispose(totalProgress);
   }
 
   /// Executes a [task] and automatically tracks its status in [tasks].
@@ -473,6 +510,37 @@ mixin LevitReactiveTasksMixin on LevitController {
     _cleanupTimers.clear();
     // Reactive variables are closed by autoDispose
     super.onClose();
+  }
+
+  /// Executes a [task] in a separate [Isolate] using [Isolate.run].
+  ///
+  /// This is ideal for heavy computational tasks that would otherwise block
+  /// the main isolate. It leverages [runTask] internally for queueing,
+  /// reactive status tracking, and retries.
+  ///
+  /// **Constraint**: The [task] must be a top-level function or a static method.
+  Future<T?> runIsolateTask<T>(
+    FutureOr<T> Function() task, {
+    String? id,
+    TaskPriority priority = TaskPriority.normal,
+    int retries = 0,
+    Duration? retryDelay,
+    bool useExponentialBackoff = true,
+    double weight = 1.0,
+    void Function(Object error, StackTrace stackTrace)? onError,
+    TaskCachePolicy<T>? cachePolicy,
+  }) {
+    return runTask(
+      () => Isolate.run(task),
+      id: id,
+      priority: priority,
+      retries: retries,
+      retryDelay: retryDelay,
+      useExponentialBackoff: useExponentialBackoff,
+      weight: weight,
+      onError: onError,
+      cachePolicy: cachePolicy,
+    );
   }
 }
 

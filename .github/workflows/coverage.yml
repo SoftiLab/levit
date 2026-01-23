@@ -25,7 +25,7 @@ jobs:
           
       - name: Run Coverage Script
         id: coverage_script
-        run: dart scripts/check_coverage.dart
+        run: dart tools/scripts/check_coverage.dart
         
       - name: Merge Coverage Reports
         # if: always() # Run even if tests fail (script exits 1 but generates lcovs)
@@ -52,7 +52,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_dart/coverage/lcov.info
+           files: packages/core/levit_dart/coverage/lcov.info
            flags: levit_dart
            token: ${{ secrets.CODECOV_TOKEN }}
            
@@ -60,7 +60,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_scope/coverage/lcov.info
+           files: packages/core/levit_scope/coverage/lcov.info
            flags: levit_scope
            token: ${{ secrets.CODECOV_TOKEN }}
            
@@ -68,7 +68,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_reactive/coverage/lcov.info
+           files: packages/core/levit_reactive/coverage/lcov.info
            flags: levit_reactive
            token: ${{ secrets.CODECOV_TOKEN }}
            
@@ -76,7 +76,7 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_flutter/coverage/lcov.info
+           files: packages/core/levit_flutter/coverage/lcov.info
            flags: levit_flutter
            token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -84,6 +84,6 @@ jobs:
         uses: codecov/codecov-action@v4
         if: always()
         with:
-           files: packages/levit_monitor/coverage/lcov.info
+           files: packages/tooling/levit_monitor/coverage/lcov.info
            flags: levit_monitor
            token: ${{ secrets.CODECOV_TOKEN }}
