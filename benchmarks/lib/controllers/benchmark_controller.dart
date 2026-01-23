@@ -5,18 +5,9 @@ import 'package:flutter/widgets.dart';
 import 'package:levit_dart/levit_dart.dart';
 
 import '../benchmark_engine.dart';
-import '../benchmarks/logic/async_computed.dart';
-import '../benchmarks/logic/batch_benchmark.dart';
-import '../benchmarks/logic/complex_graph.dart';
-import '../benchmarks/logic/fan_in.dart';
-import '../benchmarks/logic/fan_out.dart';
-import '../benchmarks/logic/rapid_mutation.dart';
-import '../benchmarks/logic/scoped_di.dart';
-import '../benchmarks/ui/animated_state.dart';
-import '../benchmarks/ui/deep_tree.dart';
-import '../benchmarks/ui/dynamic_grid.dart';
-import '../benchmarks/ui/large_list.dart';
+import '../benchmark_discovery.dart';
 import '../runners/benchmark_runner.dart';
+import '../runners/benchmark_reporter.dart';
 
 class AppBenchmarkController extends LevitController {
   final runner = BenchmarkRunner();
@@ -35,21 +26,7 @@ class AppBenchmarkController extends LevitController {
   // Widget for active UI benchmarks
   late LxVar<WidgetBuilder?> activeBenchmarkWidget;
 
-  final List<Benchmark> availableBenchmarks = [
-    // Logic Benchmarks
-    RapidMutationBenchmark(),
-    ComplexGraphBenchmark(),
-    FanOutBenchmark(),
-    FanInBenchmark(),
-    AsyncComputedBenchmark(),
-    BatchVsUnBatchedBenchmark(),
-    ScopedDIBenchmark(),
-    // UI Benchmarks
-    LargeListBenchmark(),
-    DeepTreeBenchmark(),
-    DynamicGridBenchmark(),
-    AnimatedStateBenchmark(),
-  ];
+  final List<Benchmark> availableBenchmarks = BenchmarkDiscovery.allBenchmarks;
 
   @override
   void onInit() {
@@ -112,28 +89,12 @@ class AppBenchmarkController extends LevitController {
   }
 
   Future<void> copyResults() async {
-    final buffer = StringBuffer();
-    buffer.writeln('# Benchmark Results');
-    buffer.writeln('Date: ${DateTime.now()}');
-    buffer.writeln('');
+    final report = BenchmarkReporter.generateMarkdownReport(
+      results: results,
+      title: 'Benchmark Results',
+    );
 
-    for (final benchName in results.keys) {
-      buffer.writeln('## $benchName');
-      buffer.writeln('| Framework | Time (µs) | Status |');
-      buffer.writeln('|---|---|---|');
-
-      final sortedResults = List<BenchmarkResult>.from(results[benchName]!)
-        ..sort((a, b) => a.durationMicros.compareTo(b.durationMicros));
-
-      for (final res in sortedResults) {
-        final status = res.success ? 'OK' : 'Error: ${res.error}';
-        buffer.writeln(
-            '| ${res.framework.label} | ${res.durationMicros} | $status |');
-      }
-      buffer.writeln('');
-    }
-
-    await Clipboard.setData(ClipboardData(text: buffer.toString()));
+    await Clipboard.setData(ClipboardData(text: report));
 
     currentStatus.value = 'Copied to clipboard!';
     await Future.delayed(const Duration(seconds: 2));

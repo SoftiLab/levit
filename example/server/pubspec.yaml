@@ -9,13 +9,13 @@ environment:
 # Add regular dependencies here.
 dependencies:
   path: ^1.9.0
-  levit_dart:
-    path: ../../packages/levit_dart
-  shared:
-    path: ../shared
   shelf: ^1.4.2
   shelf_web_socket: ^3.0.0
   web_socket_channel: ^3.0.3
+
+  levit_dart: ^0.0.4
+  shared:
+    path: ../shared
 
 dev_dependencies:
   lints: ^6.0.0

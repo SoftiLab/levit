@@ -3,9 +3,9 @@ repository: https://github.com/softilab/levit
 
 packages:
   - benchmarks
-  - packages/**
   - example/**
-  - stress_tests
+  - packages/**
+  - tooling/stress_tests
 
 command:
   bootstrap:
@@ -54,7 +54,7 @@ scripts:
 
   # 1. Generate docs for every package
   doc:gen:
-    run: dart doc --output=../../temp-docs .
+    run: dart doc --output=../../../.temp-docs .
     exec:
       # Run this in every package that has a pubspec.yaml and isn't an example
       concurrency: 1

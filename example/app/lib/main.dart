@@ -6,6 +6,8 @@ import 'package:nexus_studio_app/controllers.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // LevitMonitor.enable();
+
   debugPrint('🚀 Registering Core Controllers...');
 
   // Pillar 5: Scoped DI (Standardizing on global registry for app-wide services)

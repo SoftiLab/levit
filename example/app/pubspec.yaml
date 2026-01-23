@@ -9,11 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  levit_flutter:
-    path: ../../packages/levit_flutter
+  web_socket_channel: ^3.0.3
+
+  levit_flutter: ^0.0.4
   shared:
     path: ../shared
-  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:
@@ -21,6 +21,8 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   async: ^2.11.0
   stream_channel: ^2.1.1
+
+  levit_monitor: ^0.0.1
 
 flutter:
   uses-material-design: true

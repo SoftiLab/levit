@@ -44,6 +44,8 @@
         "unregisters",
         "unwatch",
         "Updateable",
+        "Vite",
+        "vitepress",
         "writeln"
     ],
     // flagWords - list of words to be always considered incorrect
@@ -57,7 +59,7 @@
     "ignorePaths": [
         "**/build/**",
         "**/coverage/**",
-        "**/temp-docs/**",
+        "**/.temp-docs/**",
         "**/macos/**",
         "**/ios/**",
         "**/android/**"
