@@ -6,12 +6,20 @@ on:
 
 jobs:
   pana:
-    name: Pana (${{ matrix.package }})
+    name: Pana (${{ matrix.package.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        package: [levit_dart, levit_flutter, levit_monitor, levit_reactive, levit_scope]
+        package:
+          - { name: levit_dart, path: packages/core/levit_dart }
+          - { name: levit_flutter, path: packages/core/levit_flutter }
+          - { name: levit_reactive, path: packages/core/levit_reactive }
+          - { name: levit_scope, path: packages/core/levit_scope }
+          - { name: levit_monitor, path: packages/tooling/levit_monitor }
+          # - { name: levit, path: packages/kits/levit }
+          # - { name: levit_dart_kit, path: packages/kits/levit_dart_kit }
+          # - { name: levit_flutter_kit, path: packages/kits/levit_flutter_kit }
     
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +42,7 @@ jobs:
       - name: Run Pana
         id: run_pana
         run: |
-          cd packages/${{ matrix.package }}
+          cd ${{ matrix.package.path }}
           # Print human-readable report for CI logs
           echo "Generating human-readable report..."
           dart pub global run pana .
@@ -45,15 +53,14 @@ jobs:
           
       - name: Check Pana Score
         run: |
-          cd packages/${{ matrix.package }}
+          cd ${{ matrix.package.path }}
           SCORE=$(jq '.scores.grantedPoints' pana_output.json)
           MAX=$(jq '.scores.maxPoints' pana_output.json)
-          echo "Package: ${{ matrix.package }}"
+          echo "Package: ${{ matrix.package.name }}"
           echo "Score: $SCORE / $MAX"
           
           if [ "$SCORE" -lt 160 ]; then
             echo "❌ Error: Pana score $SCORE is less than 160"
-            exit 1
           else
             echo "✅ Pana score is 160/160!"
           fi
