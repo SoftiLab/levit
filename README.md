@@ -179,7 +179,7 @@ This guarantees **stable performance**, even under heavy mutation.
 flowchart TB
   subgraph Platform["Platform Kits"]
     Flutter["levit_flutter"]
-    Dart["levit"]
+    Dart["levit_dart"]
   end
 
   subgraph Logic["Orchestration"]
