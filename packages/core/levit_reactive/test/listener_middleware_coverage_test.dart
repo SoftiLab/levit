@@ -65,7 +65,7 @@ void main() {
       expect(mw.lastContext!.type, 'LxComputed');
       expect((mw.lastContext!.data as Map)['name'], 'comp');
 
-      // 3. Test LxComputed unsubscription
+      // 3. Test LxComputed un-subscription
       mw.stopCount = 0;
       mw.lastContext = null;
 

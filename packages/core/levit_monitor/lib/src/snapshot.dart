@@ -120,7 +120,7 @@ class StateSnapshot {
       // Note: LxMap iteration might need .value.entries or similar if safe iteration is needed
       // But typically .removeWhere works on LxMap too.
       // If LxMap doesn't support removeWhere, we iterate keys.
-      // Let's assume standard Map methods are proxied or use .value
+      // Let's assume standard Map methods are going to be proxy or use .value
       // Actually, safely we can collect keys to remove.
       final keysToRemove = dependencies.values
           .where((d) => d.scopeId == event.scopeId)

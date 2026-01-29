@@ -17,6 +17,7 @@ jobs:
           - { name: "levit_dart_core", path: "packages/core/levit_dart_core" }
           - { name: "levit_flutter_core", path: "packages/core/levit_flutter_core" }
           - { name: "levit_monitor", path: "packages/core/levit_monitor" }
+          - { name: "levit", path: "packages/kits/levit" }
           - { name: "levit_dart", path: "packages/kits/levit_dart" }
           - { name: "levit_flutter", path: "packages/kits/levit_flutter" }
 

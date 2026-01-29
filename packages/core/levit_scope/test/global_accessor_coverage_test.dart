@@ -77,7 +77,7 @@ void main() {
       Ls.removeMiddleware(mw);
     });
 
-    test('Ls.middleware mgmt', () {
+    test('Ls.middleware management', () {
       final mw = TestScopeMiddleware();
       Ls.addMiddleware(mw);
       Ls.removeMiddleware(mw);

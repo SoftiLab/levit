@@ -63,6 +63,7 @@
         "**/.temp-docs/**",
         "**/macos/**",
         "**/ios/**",
-        "**/android/**"
+        "**/android/**",
+        "**/doc/api/**"
     ]
 }
