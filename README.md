@@ -176,32 +176,29 @@ This guarantees **stable performance**, even under heavy mutation.
 ## Architecture at a Glance
 
 ```mermaid
-flowchart TB
-  subgraph Platform["Platform Kits"]
-    Flutter["levit_flutter"]
-    Dart["levit_dart"]
+---
+config:
+  layout: elk
+---
+flowchart LR
+ subgraph Platform["Platform Kits"]
+        Flutter["levit_flutter"]
+        Dart["levit_dart"]
   end
-
-  subgraph Logic["Orchestration"]
-    DartCore["levit_dart_core"]
-    FlutterCore["levit_flutter_core"]
+ subgraph Logic["Orchestration"]
+        DartCore["levit_dart_core"]
+        FlutterCore["levit_flutter_core"]
+        Monitor["levit_monitor"]
   end
-
-  subgraph Engine["Foundations"]
-    Reactive["levit_reactive"]
-    Scope["levit_scope"]
-    Monitor["levit_monitor"]
+ subgraph Engine["Foundations"]
+        Reactive["levit_reactive"]
+        Scope["levit_scope"]
   end
-
-  Flutter --> FlutterCore
-  Flutter --> DartCore
-  Dart --> DartCore
-  DartCore --> Reactive
-  DartCore --> Scope
-  FlutterCore --> Reactive
-  FlutterCore --> Scope
-  Monitor -.-> Reactive
-  Monitor -.-> Scope
+    Dart --> DartCore
+    DartCore --> Reactive & Scope
+    Monitor -.-> Reactive & Scope
+    Flutter --> Dart & FlutterCore
+    FlutterCore --> DartCore
 ```
 
 
