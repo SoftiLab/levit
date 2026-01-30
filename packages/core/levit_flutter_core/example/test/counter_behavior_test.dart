@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:levit_flutter_example/main.dart' as main_pkg;
+import 'package:levit_flutter_core_example/main.dart' as main_pkg;
 
 void main() {
   group('Counter Behavior', () {

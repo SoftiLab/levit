@@ -26,7 +26,7 @@ abstract class StoppableService {
 /// A mixin for [LevitController] that manages background loops and stoppable services.
 ///
 /// This mixin provides controller-scoped execution management with automatic cleanup.
-mixin LevitExecutionLoopMixin on LevitController {
+mixin LevitLoopExecutionMixin on LevitController {
   final Map<String, StoppableService> _services = {};
   final Set<String> _permanentServices = {};
 

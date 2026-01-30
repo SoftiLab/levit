@@ -4,7 +4,7 @@ import 'package:levit_dart/levit_dart.dart';
 import 'package:test/test.dart';
 
 class TestController extends LevitController
-    with LevitSelectionMixin<int>, LevitExecutionLoopMixin, LevitTimeMixin {
+    with LevitSelectionMixin<int>, LevitLoopExecutionMixin, LevitTimeMixin {
   @override
   void onInit() {
     super.onInit();
@@ -54,7 +54,7 @@ void main() {
       countdown.stop();
     });
 
-    test('LevitExecutionLoopMixin gaps', () async {
+    test('LevitLoopExecutionMixin gaps', () async {
       int callCount = 0;
       controller.startLoop('perm', () async {
         callCount++;
@@ -81,7 +81,7 @@ void main() {
       controller.stopService('perm');
     });
 
-    test('LevitExecutionLoopMixin non-permanent gaps', () async {
+    test('LevitLoopExecutionMixin non-permanent gaps', () async {
       int callCount = 0;
       controller.startLoop('non-perm', () async {
         callCount++;

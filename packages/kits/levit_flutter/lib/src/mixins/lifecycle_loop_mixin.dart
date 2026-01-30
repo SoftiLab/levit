@@ -2,35 +2,21 @@ part of '../../levit_flutter.dart';
 
 /// A mixin that automatically pauses execution loops when the app goes to background.
 ///
-/// It requires [LevitExecutionLoopMixin] to function.
-mixin LevitLifecycleLoopMixin
-    on LevitController, LevitExecutionLoopMixin
-    implements WidgetsBindingObserver {
+/// It requires [LevitLoopExecutionMixin] to function.
+mixin LevitLoopLifecycleMixin on LevitController, LevitLoopExecutionMixin {
+  late final _LifecycleLoopObserver _lifecycleObserver;
+
   @override
   void onInit() {
     super.onInit();
-    WidgetsBinding.instance.addObserver(this);
+    _lifecycleObserver = _LifecycleLoopObserver(this);
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
   }
 
   @override
   void onClose() {
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
     super.onClose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.paused:
-        pauseAllServices(force: pauseLifecycleServicesForce);
-        break;
-      case AppLifecycleState.resumed:
-        resumeAllServices(force: pauseLifecycleServicesForce);
-        break;
-      default:
-        // Do nothing for inactive or detached
-        break;
-    }
   }
 
   /// Override this to return true if you want to force pause even permanent tasks
@@ -38,4 +24,25 @@ mixin LevitLifecycleLoopMixin
   ///
   /// Defaults to `false`.
   bool get pauseLifecycleServicesForce => false;
+}
+
+class _LifecycleLoopObserver with WidgetsBindingObserver {
+  final LevitLoopLifecycleMixin _mixin;
+
+  _LifecycleLoopObserver(this._mixin);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+        _mixin.pauseAllServices(force: _mixin.pauseLifecycleServicesForce);
+        break;
+      case AppLifecycleState.resumed:
+        _mixin.resumeAllServices(force: _mixin.pauseLifecycleServicesForce);
+        break;
+      default:
+        // Do nothing for inactive or detached
+        break;
+    }
+  }
 }

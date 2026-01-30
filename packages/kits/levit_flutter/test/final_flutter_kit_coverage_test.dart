@@ -8,7 +8,7 @@ class LifecycleController extends LevitController with LevitAppLifecycleMixin {
 }
 
 class LifecycleLoopController extends LevitController
-    with LevitExecutionLoopMixin, LevitLifecycleLoopMixin {
+    with LevitLoopExecutionMixin, LevitLoopLifecycleMixin {
   @override
   void onInit() => super.onInit();
   @override
@@ -68,7 +68,7 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('LevitLifecycleLoopMixin coverage', (tester) async {
+    testWidgets('LevitLoopLifecycleMixin coverage', (tester) async {
       final controller = LifecycleLoopController();
       controller.onInit();
 

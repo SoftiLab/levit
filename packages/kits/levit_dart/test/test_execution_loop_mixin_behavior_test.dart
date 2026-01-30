@@ -8,7 +8,7 @@ void _testIsolateLoopBody() {
   // Simple body
 }
 
-class TestLoopController extends LevitController with LevitExecutionLoopMixin {}
+class TestLoopController extends LevitController with LevitLoopExecutionMixin {}
 
 class MockStoppableService extends StoppableService {
   final _status = LxVar<LxStatus<dynamic>>(LxIdle());
@@ -43,7 +43,7 @@ class MockStoppableService extends StoppableService {
 }
 
 void main() {
-  group('LevitExecutionLoopMixin', () {
+  group('LevitLoopExecutionMixin', () {
     late TestLoopController controller;
 
     setUp(() {

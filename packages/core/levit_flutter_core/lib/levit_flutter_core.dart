@@ -18,3 +18,4 @@ import 'package:levit_dart_core/levit_dart_core.dart';
 part 'src/scope.dart';
 part 'src/view.dart';
 part 'src/watch.dart';
+part 'src/scoped_view.dart';
