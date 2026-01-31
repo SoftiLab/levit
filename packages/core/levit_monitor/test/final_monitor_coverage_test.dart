@@ -3,7 +3,7 @@ import 'package:levit_dart_core/levit_dart_core.dart';
 import 'package:levit_scope/levit_scope.dart';
 import 'package:test/test.dart';
 
-class FakeLevitStateInstance {}
+class FakeLevitStoreInstance {}
 
 void main() {
   group('levit_monitor Final Gaps', () {
@@ -34,9 +34,9 @@ void main() {
       expect(dep.type, DependencyType.controller);
     });
 
-    test('snapshot.dart:170 - detect LevitStateInstance type', () {
+    test('snapshot.dart:170 - detect LevitStoreInstance type', () {
       final snapshot = StateSnapshot();
-      final instance = FakeLevitStateInstance();
+      final instance = FakeLevitStoreInstance();
 
       final sid = 'test-session';
       final info = LevitDependency(isLazy: false, isFactory: false);
@@ -60,7 +60,7 @@ void main() {
       ));
 
       final dep = snapshot.dependencies['1:MyState']!;
-      expect(dep.type, DependencyType.state);
+      expect(dep.type, DependencyType.store);
     });
   });
 }

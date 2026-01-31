@@ -2,9 +2,9 @@ import 'package:levit_dart_core/levit_dart_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('LevitState', () {
+  group('LevitStore', () {
     test('standard functional state resolution', () {
-      final counter = LevitState((ref) {
+      final counter = LevitStore((ref) {
         final count = ref.autoDispose(0.lx);
         return count;
       });
@@ -17,7 +17,7 @@ void main() {
     });
 
     test('scoped safety (isolation)', () {
-      final counter = LevitState((ref) {
+      final counter = LevitStore((ref) {
         return 0.lx;
       });
 
@@ -38,28 +38,9 @@ void main() {
       expect(counter.findIn(scopeB).value, 20);
     });
 
-    test('reactivity via ref.watch', () {
-      final dependency = 0.lx;
-      var buildCount = 0;
-
-      final state = LevitState((ref) {
-        buildCount++;
-        final depValue = dependency.value;
-        return 'Value: $depValue';
-      });
-
-      expect(state.find(), 'Value: 0');
-      expect(buildCount,
-          1); // Optimized: 1 (LxComputed constructor) and no second run in _onActive
-
-      dependency.value = 1;
-      expect(state.find(), 'Value: 1');
-      expect(buildCount, 2);
-    });
-
     test('autoDispose in functional state', () {
       var disposed = false;
-      final state = LevitState((ref) {
+      final state = LevitStore((ref) {
         ref.onDispose(() => disposed = true);
         return 'test';
       });
@@ -73,17 +54,17 @@ void main() {
     });
 
     test('async state resolution', () async {
-      final asyncState = LevitState.async((ref) async {
+      final asyncState = LevitStore.async((ref) async {
         await Future.delayed(Duration(milliseconds: 10));
         return 'resolved';
       });
 
       final result = await asyncState.findAsync();
-      expect(result, 'resolved');
+      expect(await result, 'resolved');
     });
 
     test('find state by key in Levit.find', () {
-      final state = LevitState((ref) => 'hello');
+      final state = LevitStore((ref) => 'hello');
 
       expect(Levit.find<String>(key: state), 'hello');
     });

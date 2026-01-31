@@ -31,8 +31,11 @@ sealed class MonitorEvent {
       };
 
   /// Safeguard for converting arbitrary objects to string representations.
-  static dynamic _stringify(dynamic value) {
+  static dynamic _stringify(dynamic value, {bool isSensitive = false}) {
     if (value == null) return null;
+    if (isSensitive) {
+      return LevitMonitor.obfuscate(value);
+    }
     try {
       return value.toString();
     } catch (_) {
@@ -58,6 +61,7 @@ sealed class ReactiveEvent extends MonitorEvent {
         'reactiveId': reactive.id.toString(),
         'name': reactive.name,
         'ownerId': reactive.ownerId,
+        'isSensitive': reactive.isSensitive,
       };
 }
 
@@ -69,7 +73,8 @@ class ReactiveInitEvent extends ReactiveEvent {
         ...super.toJson(),
         'type': 'reactive_init',
         'valueType': reactive.value?.runtimeType.toString() ?? 'dynamic',
-        'initialValue': MonitorEvent._stringify(reactive.value),
+        'initialValue': MonitorEvent._stringify(reactive.value,
+            isSensitive: reactive.isSensitive),
       };
 }
 
@@ -98,8 +103,10 @@ class ReactiveChangeEvent extends ReactiveEvent {
   Map<String, dynamic> toJson() => {
         ...super.toJson(),
         'type': 'state_change',
-        'oldValue': MonitorEvent._stringify(change.oldValue),
-        'newValue': MonitorEvent._stringify(change.newValue),
+        'oldValue': MonitorEvent._stringify(change.oldValue,
+            isSensitive: reactive.isSensitive),
+        'newValue': MonitorEvent._stringify(change.newValue,
+            isSensitive: reactive.isSensitive),
         'valueType': change.valueType.toString(),
         'isBatch': false,
       };
@@ -122,8 +129,11 @@ class ReactiveBatchEvent extends MonitorEvent {
             .map((e) => {
                   'reactiveId': e.$1.id.toString(),
                   'name': e.$1.name,
-                  'oldValue': MonitorEvent._stringify(e.$2.oldValue),
-                  'newValue': MonitorEvent._stringify(e.$2.newValue),
+                  'isSensitive': e.$1.isSensitive,
+                  'oldValue': MonitorEvent._stringify(e.$2.oldValue,
+                      isSensitive: e.$1.isSensitive),
+                  'newValue': MonitorEvent._stringify(e.$2.newValue,
+                      isSensitive: e.$1.isSensitive),
                   'valueType': e.$2.valueType.toString(),
                 })
             .toList(),

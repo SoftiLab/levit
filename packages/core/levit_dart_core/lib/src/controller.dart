@@ -144,7 +144,7 @@ abstract class LevitController implements LevitScopeDisposable {
     _initialized = true;
   }
 
-  /// Callback invoked when the controller is being removed from [Levit].
+  /// Callback invoked when the controller is being removed from [LevitScope].
   ///
   /// This method triggers the cleanup of all objects registered via [autoDispose].
   ///
@@ -158,77 +158,8 @@ abstract class LevitController implements LevitScopeDisposable {
     _disposed = true;
 
     for (final disposable in _disposables) {
-      _levitDisposeItem(disposable);
+      Levit._levitDisposeItem(disposable);
     }
     _disposables.clear();
-  }
-}
-
-/// Internal utility that detects and executes the appropriate cleanup method for an [item].
-void _levitDisposeItem(dynamic item) {
-  if (item == null) return;
-
-  // 1. Framework Specifics (Priority)
-  if (item is LxReactive) {
-    item.close();
-    return;
-  }
-
-  // 2. The "Cancel" Group (Async tasks)
-  // Most common: StreamSubscription, Timer
-  if (item is StreamSubscription) {
-    item.cancel();
-    return;
-  }
-  if (item is Timer) {
-    item.cancel();
-    return;
-  }
-
-  try {
-    // Duck typing for other cancelables (like CancelableOperation)
-    (item as dynamic).cancel();
-    return;
-  } on NoSuchMethodError {
-    // Not cancelable, fall through
-  } on Exception catch (e) {
-    // Prevent crash during cleanup (only for Exceptions)
-    dev.log('Levit: Error cancelling ${item.runtimeType}',
-        error: e, name: 'levit_dart');
-  }
-
-  // 3. The "Dispose" Group (Flutter Controllers)
-  // Most common: TextEditingController, ChangeNotifier, FocusNode
-  try {
-    (item as dynamic).dispose();
-    return;
-  } on NoSuchMethodError {
-    // Not disposable, fall through
-  } on Exception catch (e) {
-    dev.log('Levit: Error disposing ${item.runtimeType}',
-        error: e, name: 'levit_dart');
-  }
-
-  // 4. The "Close" Group (Sinks, BLoCs, IO)
-  // Most common: StreamController, Sink, Bloc
-  if (item is Sink) {
-    item.close();
-    return;
-  }
-
-  try {
-    (item as dynamic).close();
-    return;
-  } on NoSuchMethodError {
-    // Not closeable, fall through
-  } on Exception catch (e) {
-    dev.log('Levit: Error closing ${item.runtimeType}',
-        error: e, name: 'levit_dart');
-  }
-
-  // 5. The "Callable" Group (Cleanup Callbacks)
-  if (item is void Function()) {
-    item();
-    return;
   }
 }

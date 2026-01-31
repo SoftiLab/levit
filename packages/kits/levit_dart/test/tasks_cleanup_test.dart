@@ -17,15 +17,13 @@ void main() {
 
     // Immediately after, it should exist and be success
     expect(controller.tasks.containsKey('task1'), isTrue);
-    expect(controller.tasks['task1'], isA<LxSuccess>());
+    expect(controller.tasks['task1']?.status, isA<LxSuccess>());
 
     // Wait for cleanup delay (50ms) + buffer
     await Future.delayed(const Duration(milliseconds: 100));
 
     // Should be gone
     expect(controller.tasks.containsKey('task1'), isFalse);
-    expect(controller.taskProgress.containsKey('task1'), isFalse);
-    expect(controller.taskWeights.containsKey('task1'), isFalse);
 
     controller.onClose();
   });

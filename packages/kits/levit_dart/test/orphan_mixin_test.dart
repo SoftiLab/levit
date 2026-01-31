@@ -25,9 +25,6 @@ void main() {
     expect(controller.tasks.ownerId, contains('OrphanController'),
         reason: 'OwnerId should fallback to runtimeType');
 
-    expect(controller.taskWeights.ownerId, isNotNull);
-    expect(controller.taskProgress.ownerId, isNotNull);
-
     // Cleanup
     controller.onClose();
   });

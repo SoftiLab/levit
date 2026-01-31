@@ -41,7 +41,7 @@ class CircleData {
 class CircleController extends LevitController
     with
         LevitLoopExecutionMixin,
-        LevitLoopLifecycleMixin,
+        LevitLoopExecutionLifecycleMixin,
         LevitSelectionMixin<String> {
   final circles = LxList<CircleData>().named('circles');
   final isSimulationPaused = LxVar(false).named('isSimulationPaused');
@@ -55,7 +55,7 @@ class CircleController extends LevitController
     autoDispose(circles);
 
     // 1. Spawning Loop
-    startLoop('spawn', () async {
+    loopEngine.startLoop('spawn', () async {
       if (canvasSize != Size.zero) {
         _spawnCircle();
       }
@@ -64,13 +64,13 @@ class CircleController extends LevitController
     // 2. Path Generation Loop (like a location stream)
     // Every 500ms, we pick a new target for all circles.
     // The UI's AnimatedPositioned will interpolate to this new target.
-    startLoop('path', () async {
+    loopEngine.startLoop('path', () async {
       _updateCircleTargets();
     }, delay: const Duration(milliseconds: 500));
 
     // 3. Shrink Loop
     // Smoothly shrink radius
-    startLoop('shrink', () async {
+    loopEngine.startLoop('shrink', () async {
       _shrinkCircles();
     }, delay: const Duration(milliseconds: 100));
   }
@@ -144,17 +144,16 @@ class CircleController extends LevitController
   void toggleSimulation() {
     isSimulationPaused.value = !isSimulationPaused.value;
     if (isSimulationPaused.value) {
-      pauseAllServices();
+      loopEngine.pauseAllServices();
     } else {
-      resumeAllServices();
+      loopEngine.resumeAllServices();
     }
   }
 
-  @override
   void resumeAllServices({bool force = false}) {
     // If simulation is manually paused, do not auto-resume on app foreground
     if (isSimulationPaused.value) return;
-    super.resumeAllServices(force: force);
+    loopEngine.resumeAllServices(force: force);
   }
 }
 

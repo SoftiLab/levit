@@ -33,7 +33,7 @@ void main() {
       );
 
       // First call - execution
-      final r1 = await controller.runTask(
+      final r1 = await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task1',
         cachePolicy: policy,
@@ -43,7 +43,7 @@ void main() {
       expect(controller.callCount, 1);
 
       // Second call - cache hit
-      final r2 = await controller.runTask(
+      final r2 = await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task1',
         cachePolicy: policy,
@@ -65,7 +65,7 @@ void main() {
         fromJson: (j) => j['val'] as int,
       );
 
-      await controller.runTask(
+      await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task_ttl',
         cachePolicy: policy,
@@ -74,7 +74,7 @@ void main() {
 
       await Future.delayed(const Duration(milliseconds: 20));
 
-      await controller.runTask(
+      await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task_ttl',
         cachePolicy: policy,
@@ -104,7 +104,7 @@ void main() {
       );
 
       // Verify reactive state is success
-      expect(controller.tasks['shared_key'], isA<LxSuccess<int>>());
+      expect(controller.tasks['shared_key']?.status, isA<LxSuccess<int>>());
       expect(controller.callCount, 1);
 
       // Clear local state but keep cache (since it's static/shared in this test instance)
@@ -122,8 +122,8 @@ void main() {
       expect(controller.callCount, 1); // fetchData not called again
 
       // Verify reactive state was updated to success despite cache hit
-      expect(controller.tasks['shared_key'], isA<LxSuccess<int>>());
-      expect((controller.tasks['shared_key'] as LxSuccess).value, 42);
+      expect(controller.tasks['shared_key']?.status, isA<LxSuccess<int>>());
+      expect((controller.tasks['shared_key']?.status as LxSuccess).value, 42);
 
       controller.onClose();
     });
@@ -142,14 +142,14 @@ void main() {
       );
 
       // First call sets cache
-      await controller.runTask(
+      await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task_fail',
         cachePolicy: policy,
       );
 
       // Second call fails to deserialize
-      final result = await controller.runTask(
+      final result = await controller.tasksEngine.schedule(
         controller.fetchData,
         id: 'task_fail',
         cachePolicy: policy,

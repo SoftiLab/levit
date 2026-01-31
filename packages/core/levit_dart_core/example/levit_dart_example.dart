@@ -1,8 +1,8 @@
 import 'package:levit_dart_core/levit_dart_core.dart';
 
-// --- PATTERN 1: Functional State (LevitState) ---
+// --- PATTERN 1: Functional State (LevitStore) ---
 // Best for stateless logic, simple shared atoms, or derived global state.
-final settingsState = LevitState((ref) {
+final settingsStore = LevitStore((ref) {
   final theme = ref.autoDispose('light'.lx);
 
   // React to changes within the functional block
@@ -12,8 +12,8 @@ final settingsState = LevitState((ref) {
 });
 
 // A derived functional state that watches settingsState
-final themeLabelState = LevitState((ref) {
-  final theme = settingsState.find();
+final themeLabelStore = LevitStore((ref) {
+  final theme = settingsStore.find();
   return 'Theme is: ${theme.value.toUpperCase()}';
 });
 
@@ -29,7 +29,7 @@ class AuthController extends LevitController {
     print('AuthController: Initialized');
 
     // We can also watch functional state from a controller!
-    final theme = settingsState.find();
+    final theme = settingsStore.find();
     autoDispose(LxWorker(theme, (val) {
       print('AuthController: Detected theme change to $val');
     }));
@@ -50,8 +50,8 @@ void main() async {
   print('=== Levit State Management Demo ===\n');
 
   // --- Using Functional State ---
-  final theme = settingsState.find();
-  final label = themeLabelState.find();
+  final theme = settingsStore.find();
+  final label = themeLabelStore.find();
 
   print('Initial Theme: ${theme.value}');
   print('Initial Label: $label');
@@ -66,7 +66,7 @@ void main() async {
   auth.login('Alice');
   theme.value = 'dark';
 
-  print('Label updated automatically: ${themeLabelState.find()}');
+  print('Label updated automatically: ${themeLabelStore.find()}');
   print(
       'User updated: ${auth.username.value} (Auth: ${auth.isAuthenticated.value})');
 

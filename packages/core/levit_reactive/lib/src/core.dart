@@ -175,7 +175,7 @@ class _LevitReactiveCore {
     // Wrap it
     // Note: applyOnBatch returns dynamic Function()
     final wrapped =
-        LevitStateMiddlewareChain.applyOnBatch(coreExecution, batchChange);
+        LevitReactiveMiddlewareChain.applyOnBatch(coreExecution, batchChange);
     return wrapped() as R;
   }
 
@@ -239,7 +239,7 @@ class _LevitReactiveCore {
     }
 
     final wrapped =
-        LevitStateMiddlewareChain.applyOnBatch(coreExecution, batchChange);
+        LevitReactiveMiddlewareChain.applyOnBatch(coreExecution, batchChange);
     return await (wrapped() as Future<dynamic>);
   }
 }
@@ -285,6 +285,12 @@ abstract interface class LxReactive<T> {
   /// The registration key of the owning controller, if applicable.
   String? get ownerId;
   set ownerId(String? value);
+
+  /// Whether this reactive object contains sensitive data.
+  ///
+  /// If true, the value will be obfuscated in monitor events.
+  bool get isSensitive;
+  set isSensitive(bool value);
 }
 
 /// An observer interface used to automatically track reactive dependencies.
@@ -340,7 +346,7 @@ class LevitReactiveNotifier {
 
     // Notify middleware if active
     if (LevitReactiveMiddleware.hasListenerMiddlewares && this is LxReactive) {
-      LevitStateMiddlewareChain.applyOnListenerAdd(
+      LevitReactiveMiddlewareChain.applyOnListenerAdd(
           this as LxReactive, _LevitReactiveCore.listenerContext);
     }
 
@@ -370,7 +376,7 @@ class LevitReactiveNotifier {
 
     // Notify middleware if active
     if (LevitReactiveMiddleware.hasListenerMiddlewares && this is LxReactive) {
-      LevitStateMiddlewareChain.applyOnListenerRemove(
+      LevitReactiveMiddlewareChain.applyOnListenerRemove(
           this as LxReactive, _LevitReactiveCore.listenerContext);
     }
 
@@ -406,7 +412,7 @@ class LevitReactiveNotifier {
         try {
           _singleListener!();
         } catch (e, s) {
-          LevitStateMiddlewareChain.applyOnReactiveError(
+          LevitReactiveMiddlewareChain.applyOnReactiveError(
               e, s, this is LxReactive ? this as LxReactive : null);
         }
       } else {
@@ -480,7 +486,7 @@ class LevitReactiveNotifier {
       try {
         _singleListener!();
       } catch (e, s) {
-        LevitStateMiddlewareChain.applyOnReactiveError(
+        LevitReactiveMiddlewareChain.applyOnReactiveError(
             e, s, this is LxReactive ? this as LxReactive : null);
       }
       return;
@@ -513,7 +519,7 @@ class LevitReactiveNotifier {
       try {
         snapshot[i]();
       } catch (e, s) {
-        LevitStateMiddlewareChain.applyOnReactiveError(
+        LevitReactiveMiddlewareChain.applyOnReactiveError(
             e, s, this is LxReactive ? this as LxReactive : null);
       }
     }
@@ -557,10 +563,12 @@ abstract class LxBase<T> extends LevitReactiveNotifier
   String? name;
 
   /// Creates a reactive wrapper around [initial].
-  LxBase(T initial, {this.onListen, this.onCancel, this.name})
-      : _value = initial {
+  LxBase(T initial,
+      {this.onListen, this.onCancel, this.name, bool isSensitive = false})
+      : _value = initial,
+        _isSensitive = isSensitive {
     if (LevitReactiveMiddleware.hasInitMiddlewares) {
-      LevitStateMiddlewareChain.applyOnInit(this);
+      LevitReactiveMiddlewareChain.applyOnInit(this);
     }
   }
 
@@ -582,6 +590,17 @@ abstract class LxBase<T> extends LevitReactiveNotifier
 
   @override
   String? ownerId;
+
+  bool _isSensitive = false;
+
+  @override
+  bool get isSensitive => _isSensitive;
+
+  @override
+  set isSensitive(bool value) {
+    if (_isSensitive == value) return;
+    _isSensitive = value;
+  }
 
   void _protectedOnActive() {
     onListen?.call();
@@ -696,7 +715,7 @@ abstract class LxBase<T> extends LevitReactiveNotifier
     }
 
     final wrapped =
-        LevitStateMiddlewareChain.applyOnSet<T>(performSet, this, change);
+        LevitReactiveMiddlewareChain.applyOnSet<T>(performSet, this, change);
     wrapped(val);
   }
 
@@ -782,7 +801,7 @@ abstract class LxBase<T> extends LevitReactiveNotifier
       super.dispose();
       _checkActive();
     } else {
-      final wrapped = LevitStateMiddlewareChain.applyOnDispose(() {
+      final wrapped = LevitReactiveMiddlewareChain.applyOnDispose(() {
         unbind();
         _controller?.close();
         super.dispose();
@@ -834,8 +853,8 @@ abstract class LxBase<T> extends LevitReactiveNotifier
       }
     }
 
-    final wrapped =
-        LevitStateMiddlewareChain.applyOnSet<T>(performRefresh, this, change);
+    final wrapped = LevitReactiveMiddlewareChain.applyOnSet<T>(
+        performRefresh, this, change);
     wrapped(_value);
   }
 

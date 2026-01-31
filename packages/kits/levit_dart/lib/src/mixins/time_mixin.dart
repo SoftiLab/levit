@@ -1,5 +1,4 @@
-import 'dart:async';
-import 'package:levit_dart_core/levit_dart_core.dart';
+part of '../../levit_dart.dart';
 
 /// A mixin for [LevitController] that centralizes time-based operations like
 /// debouncing, throttling, intervals, and countdowns.
@@ -8,6 +7,7 @@ import 'package:levit_dart_core/levit_dart_core.dart';
 /// to ensure consistent lifecycle management and memory safety.
 mixin LevitTimeMixin on LevitController {
   final _timers = <String, Timer>{};
+  final _countdowns = <LxCountdown>[];
 
   /// Debounces a [callback] function.
   ///
@@ -55,20 +55,6 @@ mixin LevitTimeMixin on LevitController {
     _timers[id] = Timer.periodic(duration, callback);
   }
 
-  /// Cancels a specific timer by [id].
-  void cancelTimer(String id) {
-    _timers[id]?.cancel();
-    _timers.remove(id);
-  }
-
-  /// Cancels all active timers (debounce, throttle, interval).
-  void cancelAllTimers() {
-    for (final timer in _timers.values) {
-      timer.cancel();
-    }
-    _timers.clear();
-  }
-
   /// Starts a reactive countdown.
   ///
   /// Returns an [LxCountdown] object that exposes the [LxCountdown.remaining]
@@ -103,7 +89,19 @@ mixin LevitTimeMixin on LevitController {
     return countdown;
   }
 
-  final _countdowns = <LxCountdown>[];
+  /// Cancels a specific timer by [id].
+  void cancelTimer(String id) {
+    _timers[id]?.cancel();
+    _timers.remove(id);
+  }
+
+  /// Cancels all active timers (debounce, throttle, interval).
+  void cancelAllTimers() {
+    for (final timer in _timers.values) {
+      timer.cancel();
+    }
+    _timers.clear();
+  }
 
   @override
   void onClose() {

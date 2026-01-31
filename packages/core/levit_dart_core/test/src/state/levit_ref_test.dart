@@ -49,7 +49,7 @@ void main() {
 
   group('LevitRef Coverage', () {
     test('scope accessor', () {
-      final state = LevitState((ref) {
+      final state = LevitStore((ref) {
         expect(ref.scope, isNotNull);
         return 'ok';
       });
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('find and findAsync fallbacks', () async {
-      final state = LevitState((ref) async {
+      final state = LevitStore((ref) async {
         Levit.put(() => 'dep', tag: 't');
         expect(ref.find<String>(tag: 't'), 'dep');
 
@@ -71,32 +71,49 @@ void main() {
     });
 
     test('onDispose error logging', () {
-      final state = LevitState((ref) {
+      final state = LevitStore((ref) {
         ref.onDispose(() => throw Exception('dispose error'));
         return 'ok';
       });
       state.find();
       Levit.reset(force: true);
     });
-  });
 
-  group('LevitStateInstance Coverage', () {
-    test('wrappedValue for sync state', () async {
-      final state = LevitState((ref) => 'sync');
-      state.find(tag: 'sync_t');
-
-      final dynamic instance = middleware.lastInstance;
-      expect(instance, isNotNull);
-      expect(await instance.wrappedValue, 'sync');
+    test('LxReactive fluent API: register, sensitive, named', () {
+      final r = 0.lx.named('my_lx').register('owner_1').sensitive();
+      expect(r.name, 'my_lx');
+      expect(r.ownerId, 'owner_1');
+      expect(r.isSensitive, true);
     });
 
-    test('wrappedValue for async state', () async {
-      final state = LevitState.async((ref) async => 'async');
-      await state.findAsync(tag: 'async_t');
+    test('_levitDisposeItem handles LevitScopeDisposable', () {
+      final mock = _MockScopeDisposable();
+      // Test via Levit.delete
+      Levit.put(() => mock);
+      expect(mock.closed, false);
+      Levit.delete<_MockScopeDisposable>(force: true);
+      expect(mock.closed, true);
 
-      final dynamic instance = middleware.lastInstance;
-      expect(instance, isNotNull);
-      expect(await instance.wrappedValue, 'async');
+      // Directly test via autoDispose to hit L280 specifically via _levitDisposeItem
+      final mock2 = _MockScopeDisposable();
+      final store = LevitStore((ref) {
+        ref.autoDispose(mock2);
+        return 'ok';
+      });
+      store.find();
+      expect(mock2.closed, false);
+      store.delete(force: true);
+      expect(mock2.closed, true);
     });
   });
+}
+
+class _MockScopeDisposable implements LevitScopeDisposable {
+  bool closed = false;
+  @override
+  void didAttachToScope(LevitScope scope, {String? key}) {}
+  @override
+  void onClose() => closed = true;
+  @override
+  void onInit() {}
 }

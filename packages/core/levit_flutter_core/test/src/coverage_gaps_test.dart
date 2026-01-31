@@ -70,7 +70,7 @@ void main() {
       );
       expect(find.text('Val: null'), findsOneWidget);
 
-      final state = LevitState((ref) => 'state_val');
+      final state = LevitStore((ref) => 'state_val');
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
@@ -84,12 +84,12 @@ void main() {
     });
 
     testWidgets('LAsyncView.state factory (Lines 116-126)', (tester) async {
-      final state = LevitState.async((ref) async => 'async_val');
+      final state = LevitStore.async((ref) async => 'async_val');
       await tester.runAsync(() async {
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
-            child: LAsyncView<String>.state(
+            child: LAsyncView<String>.store(
               state,
               builder: (context, val) => Text('Val: $val'),
             ),

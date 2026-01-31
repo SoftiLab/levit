@@ -13,7 +13,8 @@ part of '../levit_reactive.dart';
 /// ```
 class LxVar<T> extends LxBase<T> {
   /// Creates a reactive variable with an [initial] value.
-  LxVar(super.initial, {super.onListen, super.onCancel, super.name});
+  LxVar(super.initial,
+      {super.onListen, super.onCancel, super.name, super.isSensitive});
 
   /// Updates the value and triggers notifications if the value changed.
   set value(T val) => setValueInternal(val);
@@ -47,7 +48,8 @@ class LxVar<T> extends LxBase<T> {
 /// true/false assignment.
 class LxBool extends LxVar<bool> {
   /// Creates a reactive boolean. [initial] defaults to `false`.
-  LxBool([super.initial = false, String? name]) : super(name: name);
+  LxBool([super.initial = false, String? name, bool isSensitive = false])
+      : super(name: name, isSensitive: isSensitive);
 
   /// Toggles the current value.
   void toggle() => value = !value;
@@ -68,7 +70,7 @@ class LxBool extends LxVar<bool> {
 /// A reactive number with fluent arithmetic extensions.
 class LxNum<T extends num> extends LxVar<T> {
   /// Creates a reactive number instance.
-  LxNum(super.initial, {super.name});
+  LxNum(super.initial, {super.name, super.isSensitive});
 
   /// Increments the value by 1.
   void increment() => value = (value + 1) as T;
@@ -117,6 +119,10 @@ extension LxExtension<T> on T {
   /// final name = 'Levit'.lx;
   /// ```
   LxVar<T> get lx => LxVar<T>(this);
+
+  /// Wraps this value in a reactive [LxVar] with optional configuration.
+  LxVar<T> lxVar({String? named, bool isSensitive = false}) =>
+      LxVar<T>(this, name: named, isSensitive: isSensitive);
 
   /// Wraps this value in a nullable reactive [LxVar].
   LxVar<T?> get lxNullable => LxVar<T?>(this);

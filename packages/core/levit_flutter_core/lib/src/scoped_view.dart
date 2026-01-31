@@ -24,9 +24,9 @@ class LScopedView<T> extends LView<T> {
     this.args,
   });
 
-  /// Syntax sugar for consuming a [LevitState] within a new scope.
+  /// Syntax sugar for consuming a [LevitStore] within a new scope.
   factory LScopedView.state(
-    LevitState<T> state, {
+    LevitStore<T> state, {
     Key? key,
     dynamic Function(LevitScope scope)? dependencyFactory,
     required Widget Function(BuildContext context, T controller) builder,
@@ -133,9 +133,9 @@ class LAsyncScopedView<T> extends LView<T> {
     this.args,
   });
 
-  /// Syntax sugar for consuming a [LevitState] within a new async scope.
+  /// Syntax sugar for consuming a [LevitStore] within a new async scope.
   factory LAsyncScopedView.state(
-    LevitState<T> state, {
+    LevitStore<T> state, {
     Key? key,
     Future Function(LevitScope scope)? dependencyFactory,
     required Widget Function(BuildContext context, T controller) builder,
@@ -218,9 +218,9 @@ class LScopedAsyncView<T> extends LAsyncView<T> {
     this.scopeName,
   });
 
-  /// Syntax sugar for consuming a [LevitAsyncState] within a new scope.
-  factory LScopedAsyncView.state(
-    LevitAsyncState<T> state, {
+  /// Syntax sugar for consuming a [LevitAsyncStore] within a new scope.
+  factory LScopedAsyncView.store(
+    LevitAsyncStore<T> store, {
     Key? key,
     dynamic Function(LevitScope scope)? dependencyFactory,
     required Widget Function(BuildContext context, T controller) builder,
@@ -233,7 +233,7 @@ class LScopedAsyncView<T> extends LAsyncView<T> {
     return LScopedAsyncView<T>(
       key: key,
       dependencyFactory: dependencyFactory,
-      resolver: (context) => context.levit.findAsync<T>(key: state),
+      resolver: (context) => context.levit.findAsync<T>(key: store),
       builder: builder,
       autoWatch: autoWatch,
       loading: loading,

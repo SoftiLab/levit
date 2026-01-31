@@ -12,8 +12,8 @@ void main() {
       Levit.reset(force: true);
     });
 
-    test('LevitState and LevitRef coverage', () async {
-      final state = LevitState<String>((ref) {
+    test('LevitStore and LevitRef coverage', () async {
+      final state = LevitStore<String>((ref) {
         // ref.scope coverage
         expect(ref.scope, isNotNull);
 
@@ -25,20 +25,20 @@ void main() {
       });
 
       expect(state.find(), 'ok');
-      expect(state.toString(), contains('LevitState'));
+      expect(state.toString(), contains('LevitStore'));
 
-      final asyncState = LevitState.async((ref) async {
+      final asyncState = LevitStore.async((ref) async {
         await Future.delayed(Duration(milliseconds: 5));
         Levit.lazyPutAsync(() async => 'async_dep', tag: 'ad');
         return await ref.findAsync<String>(tag: 'ad');
       });
 
-      expect(await asyncState.findAsync(), 'async_dep');
-      expect(asyncState.toString(), contains('LevitState'));
+      expect(await await asyncState.findAsync(), 'async_dep');
+      expect(asyncState.toString(), contains('LevitStore'));
     });
 
     test('Levit core find methods coverage', () async {
-      final state = LevitState<String>((ref) => 'val');
+      final state = LevitStore<String>((ref) => 'val');
 
       // findOrNull
       expect(Levit.findOrNull<String>(key: state), 'val');
@@ -51,7 +51,7 @@ void main() {
       expect(await Levit.findOrNullAsync<String>(key: state), 'val');
       expect(await Levit.findOrNullAsync<String>(key: 'invalid'), isNull);
 
-      // isRegistered and isInstantiated for LevitState
+      // isRegistered and isInstantiated for LevitStore
       // Hit lines 172 and 181
       state.find(tag: 'provider_test');
       expect(Levit.isRegistered(key: state, tag: 'provider_test'), true);
@@ -63,7 +63,7 @@ void main() {
     });
 
     test('Auto-linking and adoption coverage', () {
-      final state = LevitState<LxVar<int>>((ref) {
+      final state = LevitStore<LxVar<int>>((ref) {
         final v = 0.lx;
         return v;
       });
@@ -73,7 +73,7 @@ void main() {
     });
 
     test('LevitRef dispose error log coverage', () {
-      final state = LevitState((ref) {
+      final state = LevitStore((ref) {
         ref.onDispose(() => throw Exception('onDispose error'));
         return 'test';
       });
@@ -85,8 +85,8 @@ void main() {
       // runCapturedForTesting is already covered by its own tests or we can add here
     });
 
-    test('LevitStateExtension coverage', () async {
-      final state = LevitState((ref) => 'test');
+    test('LevitStoreExtension coverage', () async {
+      final state = LevitStore((ref) => 'test');
       expect(state.find(), 'test');
 
       // findAsync extension (state.dart line 325)

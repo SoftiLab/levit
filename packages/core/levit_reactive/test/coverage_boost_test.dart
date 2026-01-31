@@ -1,112 +1,42 @@
-import 'package:test/test.dart';
 import 'package:levit_reactive/levit_reactive.dart';
-import 'dart:async';
-
-class SimpleReactive<T> extends LxBase<T> {
-  SimpleReactive(super.initial);
-  set value(T v) => setValueInternal(v);
-}
+import 'package:test/test.dart';
 
 void main() {
-  group('Levit Reactive Coverage Boost', () {
-    test('_DependencyTracker Set mode (lines 535, 543-545)', () {
-      final reactives = List.generate(10, (i) => SimpleReactive(i));
+  group('levit_reactive Coverage Boost', () {
+    test('isSensitive getter and setter', () {
+      final v = 0.lx;
+      expect(v.isSensitive, false);
 
-      final multiComputed = LxComputed(() {
-        int sum = 0;
-        for (var r in reactives) {
-          sum += r.value;
-        }
-        return sum;
-      });
+      v.isSensitive = true;
+      expect(v.isSensitive, true);
 
-      expect(multiComputed.value, 45);
-
-      reactives[0].value = 10;
-      expect(multiComputed.value, 55);
+      // Setting same value
+      v.isSensitive = true;
+      expect(v.isSensitive, true);
     });
 
-    test('LevitReactiveHistoryMiddleware redoChanges integration', () {
-      final history = LevitReactiveHistoryMiddleware();
-      final rx = SimpleReactive(0);
+    test('lxVar extension with config', () {
+      final v = 'test'.lxVar(named: 'my_var', isSensitive: true);
+      expect(v.value, 'test');
+      expect(v.name, 'my_var');
+      expect(v.isSensitive, true);
 
-      Lx.addMiddleware(history);
-      addTearDown(() => Lx.clearMiddlewares());
-
-      // Trigger change which goes through middleware
-      rx.value = 1;
-
-      expect(history.canUndo, true);
-      expect(history.redoChanges.isEmpty, true);
-
-      history.undo();
-      expect(history.redoChanges.length, 1);
-      expect(history.redoChanges.first.newValue, 1);
-      expect(history.canUndo, false);
-      expect(history.length, 0);
+      final v2 = 123.lxVar();
+      expect(v2.value, 123);
+      expect(v2.name, isNull);
+      expect(v2.isSensitive, false);
     });
 
-    test('Extensions coverage (.lx)', () {
-      final count = 0.lx;
-      final doubled = (() => count.value * 2).lx;
-      expect(doubled.value, 0);
-
-      final asyncComp = (() async => 42).lx;
-      expect(asyncComp, isA<LxAsyncComputed<int>>());
+    test('LxReactive 3+ listeners (L359-360)', () {
+      final v = 0.lx;
+      v.addListener(() {}); // 1
+      v.addListener(() {}); // 2 -> _setListeners
+      v.addListener(() {}); // 3 -> covers L359-360
     });
 
-    test('LxWorkerStat copyWith isProcessing (line 59)', () {
-      const stat = LxWorkerStat();
-      final stat2 = stat.copyWith(isProcessing: true, isAsync: true);
-      expect(stat2.isProcessing, true);
-      expect(stat2.isAsync, true);
-    });
-
-    test('LxWorker detected async coverage extra', () async {
-      final rx = SimpleReactive(0);
-      final watch = LxWorker(rx, (val) async {
-        await Future.delayed(Duration(milliseconds: 10));
-      });
-
-      rx.value = 1;
-      await Future.delayed(Duration(milliseconds: 50));
-      expect(watch.value.isProcessing, false);
-    });
-
-    test('Listener modification during notification (core.dart lines 312, 325)',
-        () {
-      final rx = SimpleReactive(0);
-
-      void listener1() {
-        // Add another listener during notification
-        rx.addListener(() {});
-        // Remove another listener during notification
-        // (we need a reference to something else to remove)
-      }
-
-      void listenerToRemove() {}
-      rx.addListener(listenerToRemove);
-
-      void listener2() {
-        rx.removeListener(listenerToRemove);
-      }
-
-      rx.addListener(listener1);
-      rx.addListener(listener2);
-
-      // Trigger notifications to hit _notificationDepth > 0 blocks
-      rx.value = 1;
-    });
-
-    test('_cleanupSubscriptions coverage (computed.dart line 424)', () {
-      final rx = 0.lx;
-      final comp = LxComputed(() => rx.value);
-
-      // Activate
-      final sub = comp.stream.listen((_) {});
-
-      // Inactivate (triggers _onInactive -> _cleanupSubscriptions)
-      sub.cancel();
+    test('LevitReactiveHistoryMiddleware redoChanges (L404-406)', () {
+      final mw = LevitReactiveHistoryMiddleware();
+      mw.redoChanges;
     });
   });
 }

@@ -1,7 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:levit_flutter_core/levit_flutter_core.dart';
-import 'dart:async';
 
 import 'helpers.dart';
 
@@ -101,14 +100,14 @@ void main() {
   group('LScopedAsyncView Coverage', () {
     testWidgets('LScopedAsyncView.state resolves LevitAsyncState',
         (tester) async {
-      final state = LevitAsyncState<TestController>((_) async {
+      final state = LevitAsyncStore<TestController>((_) async {
         await Future.delayed(const Duration(milliseconds: 10));
         return TestController()..count = 99;
       });
 
       await tester.pumpWidget(
         MaterialApp(
-          home: LScopedAsyncView<TestController>.state(
+          home: LScopedAsyncView<TestController>.store(
             state,
             loading: (_) => const Text('Loading...'),
             builder: (context, controller) =>

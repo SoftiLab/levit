@@ -10,7 +10,7 @@
 
 ## 0.0.4
 
-- Unified `LevitStateMiddleware` architecture.
+- Unified `LevitReactiveMiddleware` architecture.
 - Optimized `LxComputed` with batching and smarter dependency tracking.
 - Added `LxLxStatus` and improved asynchronous types.
 - Fixed memory leaks in deep reactive graphs.
@@ -23,7 +23,7 @@
 
 ## 0.0.2
 
-- Added documentation for `LxError`, `LxAsyncComputed`, `LevitStateHistoryMiddleware`, `LevitStateMiddleware`, and `LevitStateNotifier`.
+- Added documentation for `LxError`, `LxAsyncComputed`, `LevitReactiveHistoryMiddleware`, `LevitReactiveMiddleware`, and `LevitReactiveNotifier`.
 - Fixed lint issues in `core.dart`.
 - Added example project.
 

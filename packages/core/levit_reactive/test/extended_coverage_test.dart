@@ -68,7 +68,7 @@ void main() {
     });
 
     test('Middleware Chain coverage', () {
-      // Trigger LevitStateMiddlewareChain._()
+      // Trigger LevitReactiveMiddlewareChain._()
       final m1 = TestMiddleware();
       final m2 = TestMiddleware();
       LevitReactiveMiddleware.add(m1);

@@ -135,26 +135,34 @@ class _AutoLinkScope {
 class _AutoLinkMiddleware extends LevitReactiveMiddleware {
   @override
   void Function(LxReactive)? get onInit => (reactive) {
-        if (_AutoLinkScope._activeCaptureScopes == 0) return;
+        // Optimization: Early exit if neither Zone-capture nor Context-owner is active
+        final context = Lx.listenerContext;
+        final hasOwnerContext = context != null && context.type == 'Owner';
 
-        // 1. Capture for auto-dispose
-        final captureList = Zone.current[_AutoLinkScope._captureKey];
-        if (captureList is List<LxReactive>) {
-          captureList.add(reactive);
+        if (_AutoLinkScope._activeCaptureScopes == 0 && !hasOwnerContext) {
+          return;
         }
 
-        // 2. Set ownerId from context if not already set (Optimization!)
-        // Check Zone first (Fast Path from Optimization 1)
-        final zonedOwnerId =
-            Zone.current[_AutoLinkScope._ownerIdKey] as String?;
-        if (zonedOwnerId != null) {
-          reactive.ownerId ??= zonedOwnerId;
-        } else {
-          final context = Lx.listenerContext;
-          if (context != null && context.type == 'Owner') {
+        // 1. Capture for auto-dispose (Only if Zone capture is active)
+        if (_AutoLinkScope._activeCaptureScopes > 0) {
+          final captureList = Zone.current[_AutoLinkScope._captureKey];
+          if (captureList is List<LxReactive>) {
+            captureList.add(reactive);
+          }
+        }
+
+        // 2. Set ownerId from context if not already set
+        if (reactive.ownerId == null) {
+          // Check Zone first (Fast Path for runCaptured)
+          final zonedOwnerId =
+              Zone.current[_AutoLinkScope._ownerIdKey] as String?;
+          if (zonedOwnerId != null) {
+            reactive.ownerId = zonedOwnerId;
+          } else if (hasOwnerContext) {
+            // Check static Context (for Lx.runWithOwner)
             final data = context.data;
             if (data is Map<String, dynamic>) {
-              reactive.ownerId ??= data['ownerId'] as String?;
+              reactive.ownerId = data['ownerId'] as String?;
             }
           }
         }

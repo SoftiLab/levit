@@ -38,7 +38,7 @@ void main() {
       expect(batch.isPropagationStopped, true);
     });
 
-    // We can't easily test global static methods of LevitStateMiddlewareChain without affecting global state
+    // We can't easily test global static methods of LevitReactiveMiddlewareChain without affecting global state
     // properly, but we can verify StateHistory logic which is contained.
 
     test('StateHistoryMiddleware clear and print', () {

@@ -30,7 +30,7 @@ void main() async {
 
   print('Starting a task that fails once but succeeds on retry...');
   int attempts = 0;
-  final result = await taskController.runTask<String>(
+  final result = await taskController.tasksEngine.schedule<String>(
     () async {
       attempts++;
       if (attempts == 1) {
@@ -78,14 +78,14 @@ void main() async {
   final loopController = scope.put(() => LoopExampleController());
 
   print('Starting a background loop (ticking every 200ms)...');
-  loopController.startLoop('ticker', () async {
+  loopController.loopEngine.startLoop('ticker', () async {
     print(
-        '  Tick! (Status: ${loopController.getServiceStatus('ticker')?.value})');
+        '  Tick! (Status: ${loopController.loopEngine.getServiceStatus('ticker')?.value})');
   }, delay: const Duration(milliseconds: 200));
 
   await Future.delayed(const Duration(milliseconds: 700));
   print('Stopping background loop.');
-  loopController.stopService('ticker');
+  loopController.loopEngine.stopService('ticker');
 
   print('\n--- Example Complete ---');
   scope.dispose();

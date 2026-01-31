@@ -40,9 +40,9 @@ class LView<T> extends StatefulWidget {
     this.autoWatch = true,
   });
 
-  /// Syntax sugar for consuming a [LevitState].
+  /// Syntax sugar for consuming a [LevitStore].
   factory LView.state(
-    LevitState<T> state, {
+    LevitStore<T> state, {
     Key? key,
     required Widget Function(BuildContext context, T controller) builder,
     bool autoWatch = true,
@@ -175,9 +175,9 @@ class LAsyncView<T> extends StatefulWidget {
     this.args,
   });
 
-  /// Syntax sugar for consuming a [LevitAsyncState].
-  factory LAsyncView.state(
-    LevitAsyncState<T> state, {
+  /// Syntax sugar for consuming a [LevitAsyncStore].
+  factory LAsyncView.store(
+    LevitAsyncStore<T> store, {
     Key? key,
     required Widget Function(BuildContext context, T controller) builder,
     bool autoWatch = true,
@@ -187,7 +187,7 @@ class LAsyncView<T> extends StatefulWidget {
   }) =>
       LAsyncView<T>(
         key: key,
-        resolver: (context) => context.levit.findAsync<T>(key: state),
+        resolver: (context) => context.levit.findAsync<T>(key: store),
         builder: builder,
         autoWatch: autoWatch,
         loading: loading,

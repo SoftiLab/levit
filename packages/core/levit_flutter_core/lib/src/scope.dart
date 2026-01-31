@@ -354,7 +354,7 @@ class LevitProvider {
 
   /// Resolves a dependency of type [S] or identified by [key] or [tag].
   S find<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
       return key.findIn(scope, tag: tag) as S;
     }
@@ -368,7 +368,7 @@ class LevitProvider {
   /// Resolves a dependency, or null if not found.
   S? findOrNull<S>({dynamic key, String? tag}) {
     try {
-      if (key is LevitState) {
+      if (key is LevitStore) {
         final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
         return key.findIn(scope, tag: tag) as S?;
       }
@@ -384,7 +384,7 @@ class LevitProvider {
 
   /// Asynchronously resolves a dependency of type [S] or identified by [key] or [tag].
   Future<S> findAsync<S>({dynamic key, String? tag}) async {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
       final result = await key.findAsyncIn(scope, tag: tag);
       if (result is Future) return await result as S;
@@ -400,7 +400,7 @@ class LevitProvider {
   /// Asynchronously resolves a dependency, or null if not found.
   Future<S?> findOrNullAsync<S>({dynamic key, String? tag}) async {
     try {
-      if (key is LevitState) {
+      if (key is LevitStore) {
         final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
         final result = await key.findAsyncIn(scope, tag: tag);
         if (result is Future) return await result as S?;
@@ -418,7 +418,7 @@ class LevitProvider {
 
   /// Whether type [S] is registered in the current or any parent scope.
   bool isRegistered<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
       return key.isRegisteredIn(scope, tag: tag);
     }
@@ -431,7 +431,7 @@ class LevitProvider {
 
   /// Whether type [S] has already been instantiated.
   bool isInstantiated<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       final scope = _ScopeProvider.of(_context) ?? Ls.currentScope;
       return key.isInstantiatedIn(scope, tag: tag);
     }

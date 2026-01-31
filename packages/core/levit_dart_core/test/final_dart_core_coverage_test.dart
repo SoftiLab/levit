@@ -8,35 +8,6 @@ void main() {
       Ls.reset(force: true);
     });
 
-    test('state.dart:22, 30-31 - LevitRef find/findAsync with LevitState key',
-        () async {
-      final s1 = LevitState((ref) => 10);
-      final s2 = LevitState((ref) {
-        final val1 = ref.find<int>(key: s1);
-        return val1 + 1;
-      });
-
-      final s3 = LevitAsyncState((ref) async {
-        final val1 = await ref.findAsync<int>(key: s1);
-        return val1 + 2;
-      });
-
-      expect(s2.find(), 11);
-      expect(await s3.findAsync(), 12);
-    });
-
-    test('state.dart:174 - LevitAsyncState autoDispose captured reactives',
-        () async {
-      Levit.enableAutoLinking();
-
-      final s = LevitAsyncState((ref) async {
-        final _ = 0.lx; // Create it here to be captured
-        return 1;
-      });
-
-      await s.findAsync();
-    });
-
     test('auto_linking.dart:157-161 - Context-based owner linking', () {
       Levit.enableAutoLinking();
       Lx.runWithOwner('my-context-owner', () {

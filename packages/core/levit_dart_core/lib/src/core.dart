@@ -110,8 +110,11 @@ class Levit {
   /// Resolves a dependency of type [S] or identified by [key] or [tag].
   ///
   /// Throws an [Exception] if no registration is found.
+  /// Resolves a dependency of type [S] or identified by [key] or [tag].
+  ///
+  /// Throws an [Exception] if no registration is found.
   static S find<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       return key.findIn(Ls.currentScope, tag: tag) as S;
     }
     return Ls.find<S>(tag: tag);
@@ -119,10 +122,10 @@ class Levit {
 
   /// Retrieves the registered instance of type [S], or returns `null` if not found.
   ///
-  /// * [key]: A specific key or [LevitState] to resolve.
+  /// * [key]: A specific [LevitStore] to resolve.
   /// * [tag]: The unique identifier used during registration.
   static S? findOrNull<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       try {
         return key.findIn(Ls.currentScope, tag: tag) as S;
       } catch (_) {
@@ -137,9 +140,9 @@ class Levit {
   /// Useful for dependencies registered via [lazyPutAsync].
   /// Throws an [Exception] if no registration is found.
   static Future<S> findAsync<S>({dynamic key, String? tag}) async {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       final result = await key.findAsyncIn(Ls.currentScope, tag: tag);
-      if (result is Future) return await result as S;
+      if (result is Future && result is! S) return await result as S;
       return result as S;
     }
     return Ls.findAsync<S>(tag: tag);
@@ -147,13 +150,13 @@ class Levit {
 
   /// Asynchronously retrieves the registered instance of type [S], or returns `null`.
   ///
-  /// * [key]: A specific key or [LevitState] to resolve.
+  /// * [key]: A specific [LevitStore] to resolve.
   /// * [tag]: The unique identifier used during registration.
   static Future<S?> findOrNullAsync<S>({dynamic key, String? tag}) async {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       try {
         final result = await key.findAsyncIn(Ls.currentScope, tag: tag);
-        if (result is Future) return await result as S?;
+        if (result is Future && result is! S?) return await result as S?;
         return result as S?;
       } catch (_) {
         return null;
@@ -164,7 +167,7 @@ class Levit {
 
   /// Whether type [S] is registered in the current or any parent scope.
   static bool isRegistered<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       return key.isRegisteredIn(Ls.currentScope, tag: tag);
     }
     return Ls.isRegistered<S>(tag: tag);
@@ -172,7 +175,7 @@ class Levit {
 
   /// Whether type [S] has already been instantiated.
   static bool isInstantiated<S>({dynamic key, String? tag}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       return key.isInstantiatedIn(Ls.currentScope, tag: tag);
     }
     return Ls.isInstantiated<S>(tag: tag);
@@ -184,7 +187,7 @@ class Levit {
   /// If [force] is true, deletes even if the dependency was marked as `permanent`.
   /// Returns `true` if a registration was found and removed.
   static bool delete<S>({dynamic key, String? tag, bool force = false}) {
-    if (key is LevitState) {
+    if (key is LevitStore) {
       return key.deleteIn(Ls.currentScope, tag: tag, force: force);
     }
     return Ls.delete<S>(tag: tag, force: force);
@@ -257,6 +260,95 @@ class Levit {
     Lx.removeMiddleware(_AutoLinkMiddleware());
     LevitScope.removeMiddleware(_AutoDisposeMiddleware());
   }
+
+// -------------------------------------------------------------
+//    Internal utils
+// -------------------------------------------------------------
+
+  /// Internal utility that detects and executes the appropriate cleanup method for an [item].
+  static void _levitDisposeItem(dynamic item) {
+    if (item == null) return;
+
+    // 1. Framework Specifics (Priority)
+
+    if (item is LxReactive) {
+      item.close();
+      return;
+    }
+
+    if (item is LevitScopeDisposable) {
+      item.onClose();
+      return;
+    }
+
+    if (item is LevitDisposable) {
+      item.dispose();
+      return;
+    }
+
+    // 2. The "Cancel" Group (Async tasks)
+    // Most common: StreamSubscription, Timer
+    if (item is StreamSubscription) {
+      item.cancel();
+      return;
+    }
+    if (item is Timer) {
+      item.cancel();
+      return;
+    }
+
+    try {
+      // Duck typing for other cancelables (like CancelableOperation)
+      (item as dynamic).cancel();
+      return;
+    } on NoSuchMethodError {
+      // Not cancelable, fall through
+    } on Exception catch (e) {
+      // Prevent crash during cleanup (only for Exceptions)
+      dev.log('Levit: Error cancelling ${item.runtimeType}',
+          error: e, name: 'levit_dart');
+    }
+
+    // 3. The "Dispose" Group (Flutter Controllers)
+    // Most common: TextEditingController, ChangeNotifier, FocusNode
+    try {
+      (item as dynamic).dispose();
+      return;
+    } on NoSuchMethodError {
+      // Not disposable, fall through
+    } on Exception catch (e) {
+      dev.log('Levit: Error disposing ${item.runtimeType}',
+          error: e, name: 'levit_dart');
+    }
+
+    // 4. The "Close" Group (Sinks, BLoCs, IO)
+    // Most common: StreamController, Sink, Bloc
+    if (item is Sink) {
+      item.close();
+      return;
+    }
+
+    try {
+      (item as dynamic).close();
+      return;
+    } on NoSuchMethodError {
+      // Not closeable, fall through
+    } on Exception catch (e) {
+      dev.log('Levit: Error closing ${item.runtimeType}',
+          error: e, name: 'levit_dart');
+    }
+
+    // 5. The "Callable" Group (Cleanup Callbacks)
+    if (item is void Function()) {
+      try {
+        item();
+      } catch (e) {
+        dev.log('Levit: Error executing dispose callback',
+            error: e, name: 'levit_dart');
+      }
+      return;
+    }
+  }
 }
 
 /// Fluent API for naming reactive variables.
@@ -278,4 +370,19 @@ extension LxNamingExtension<R extends LxReactive> on R {
 
     return this;
   }
+
+  /// Marks this reactive object as sensitive (fluent API).
+  R sensitive() {
+    this.isSensitive = true;
+    return this;
+  }
+}
+
+/// Interface for objects that can be disposed of.
+///
+/// Use for complex logic that can be use inside LevitController or LevitStore
+/// and have resources to dispose when the container is disposed.
+///
+abstract class LevitDisposable {
+  void dispose();
 }

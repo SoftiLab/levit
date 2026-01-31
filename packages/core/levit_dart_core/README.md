@@ -17,7 +17,7 @@ The foundational composition layer for the Levit ecosystem. Explicit. Reactive. 
 
 - **Lifecycle Orchestration**: Defining how components are initialized, attached to scopes, and disposed.
 - **Automated Resource Management**: Ensuring all streams, timers, and reactive objects are cleaned up deterministically.
-- **Composition Conventions**: Providing both class-based ([LevitController]) and functional ([LevitState]) abstractions for logic.
+- **Composition Conventions**: Providing both class-based ([LevitController]) and functional ([LevitStore]) abstractions for logic.
 
 It deliberately avoids UI or platform-specific logic, making it suitable for CLI tools, servers, and background services. For Flutter integration, use `levit_flutter_core`.
 
@@ -28,7 +28,7 @@ It deliberately avoids UI or platform-specific logic, making it suitable for CLI
 ### Application Elements
 
 - **[LevitController]**: A managed component that encapsulates state and behavior. It participates in an explicit lifecycle and uses `autoDispose` for resource management.
-- **[LevitState]**: A functional provider that acts as a factory for state instances, offering a modern alternative to class-based controllers.
+- **[LevitStore]**: A functional provider that acts as a factory for state instances, offering a modern alternative to class-based controllers.
 - **[Levit]**: The central registry and entry point for managing scopes and resolving dependencies.
 
 ### Key Mechanisms
@@ -75,4 +75,4 @@ While [Levit] provides ambient scoping for ergonomics, every state transition an
 Resources are never left to the garbage collector alone. The `onClose` hook and `autoDispose` mechanism ensure that all side effects are terminated as soon as a component is removed.
 
 ### Functional Composition
-The framework encourages composing logic via [LevitState] to reduce boilerplate and improve encapsulation, while providing [LevitController] for more complex or hierarchical logic.
+The framework encourages composing logic via [LevitStore] to reduce boilerplate and improve encapsulation, while providing [LevitController] for more complex or hierarchical logic.

@@ -56,81 +56,81 @@ void main() {
 
     test('LevitLoopExecutionMixin gaps', () async {
       int callCount = 0;
-      controller.startLoop('perm', () async {
+      controller.loopEngine.startLoop('perm', () async {
         callCount++;
       }, delay: Duration(milliseconds: 10), permanent: true);
 
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount, greaterThan(0));
 
-      controller.pauseAllServices();
+      controller.loopEngine.pauseAllServices();
       final countAtPauseInternal = callCount;
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount,
           greaterThan(countAtPauseInternal)); // Should NOT pause 'perm'
 
-      controller.pauseAllServices(force: true);
+      controller.loopEngine.pauseAllServices(force: true);
       final countAtPauseForced = callCount;
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount, countAtPauseForced); // Should pause 'perm'
 
-      controller.resumeAllServices(force: true);
+      controller.loopEngine.resumeAllServices(force: true);
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount, greaterThan(countAtPauseForced));
 
-      controller.stopService('perm');
+      controller.loopEngine.stopService('perm');
     });
 
     test('LevitLoopExecutionMixin non-permanent gaps', () async {
       int callCount = 0;
-      controller.startLoop('non-perm', () async {
+      controller.loopEngine.startLoop('non-perm', () async {
         callCount++;
       }, delay: Duration(milliseconds: 10), permanent: false);
 
       await Future.delayed(Duration(milliseconds: 30));
-      controller.pauseAllServices();
+      controller.loopEngine.pauseAllServices();
       final countAtPause = callCount;
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount, countAtPause);
 
-      controller.resumeAllServices();
+      controller.loopEngine.resumeAllServices();
       await Future.delayed(Duration(milliseconds: 30));
       expect(callCount, greaterThan(countAtPause));
 
-      controller.stopService('non-perm');
+      controller.loopEngine.stopService('non-perm');
     });
 
     test('_LoopService deep pause/stop', () async {
-      controller.startLoop('loop3', () async {
+      controller.loopEngine.startLoop('loop3', () async {
         await Future.delayed(Duration(milliseconds: 20));
       }, delay: Duration(milliseconds: 10));
       await Future.delayed(Duration(milliseconds: 10));
-      controller.pauseService('loop3');
+      controller.loopEngine.pauseService('loop3');
       await Future.delayed(Duration(milliseconds: 50));
-      controller.stopService('loop3'); // Hits _resumeIfNeeded (189)
+      controller.loopEngine.stopService('loop3'); // Hits _resumeIfNeeded (189)
     });
 
     test('_IsolateLoopService exhaustive lifecycle', () async {
-      controller.startIsolateLoop('iso3', () {
+      controller.loopEngine.startIsolateLoop('iso3', () {
         // Loop body
       }, delay: Duration(milliseconds: 10));
       await Future.delayed(Duration(milliseconds: 100));
-      controller.pauseService('iso3');
+      controller.loopEngine.pauseService('iso3');
       await Future.delayed(Duration(milliseconds: 250));
-      controller.resumeService('iso3'); // Hits 288
+      controller.loopEngine.resumeService('iso3'); // Hits 288
       await Future.delayed(Duration(milliseconds: 100));
-      controller.pauseService('iso3');
+      controller.loopEngine.pauseService('iso3');
       await Future.delayed(Duration(milliseconds: 250));
-      controller.stopService('iso3'); // Hits 292-293
+      controller.loopEngine.stopService('iso3'); // Hits 292-293
     });
 
     test('_IsolateLoopService error handling', () async {
-      controller.startIsolateLoop('iso-err', () {
+      controller.loopEngine.startIsolateLoop('iso-err', () {
         throw Exception('Isolate error');
       }, delay: Duration(milliseconds: 10));
 
       await Future.delayed(Duration(milliseconds: 200));
-      final status = controller.getServiceStatus('iso-err')?.value;
+      final status = controller.loopEngine.getServiceStatus('iso-err')?.value;
       expect(status, isA<LxError>()); // Hits 312 in Isolate loop
     });
   });

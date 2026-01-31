@@ -66,6 +66,18 @@ void main() {
       watcher.close();
     });
 
+    test('started flag reflects if task has begun execution', () async {
+      final completer = Completer<void>();
+      final task = controller.runTask(() => completer.future, id: 'start_test');
+
+      // It might be LxWaiting but not yet started by the engine if maxConcurrent is hit
+      // In this test, maxConcurrent is 1, so it should start immediately.
+      expect(controller.tasks['start_test']?.started, isTrue);
+
+      completer.complete();
+      await task;
+    });
+
     test('isBusy correctly reflects active and queued tasks', () async {
       final completer = Completer<void>();
 
@@ -132,14 +144,14 @@ void main() {
       // 1. Success write/read
       await controller.runTask(() async => 42,
           id: 'cache_test', cachePolicy: cachePolicy);
-      expect(controller.tasks['cache_test'] is LxSuccess, isTrue);
+      expect(controller.tasks['cache_test']?.status is LxSuccess, isTrue);
 
       final result = await controller.runTask(() async => 99,
           id: 'cache_test', cachePolicy: cachePolicy);
       expect(result, 42, reason: 'Should return cached value');
 
       // 2. Deserialization failure
-      await controller.taskCacheProvider.write('cache_fail', {
+      await controller.tasksEngine.cacheProvider.write('cache_fail', {
         'expiresAt':
             DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch,
         'data': {'v': -1},
@@ -150,7 +162,7 @@ void main() {
           reason: 'Should run task if cache deserialization fails');
 
       // 3. Expiration
-      await controller.taskCacheProvider.write('cache_expire', {
+      await controller.tasksEngine.cacheProvider.write('cache_expire', {
         'expiresAt': DateTime.now()
             .subtract(const Duration(hours: 1))
             .millisecondsSinceEpoch,
@@ -187,12 +199,12 @@ void main() {
         fromJson: (j) => j['data'] as String,
       );
 
-      final r1 = await controller.runTask(() async => 'hello',
-          id: 't1', cachePolicy: cachePolicy);
+      final r1 = await controller.tasksEngine
+          .schedule(() async => 'hello', id: 't1', cachePolicy: cachePolicy);
       expect(r1, 'hello');
 
-      final r2 = await controller.runTask(() async => 'world',
-          id: 't1', cachePolicy: cachePolicy);
+      final r2 = await controller.tasksEngine
+          .schedule(() async => 'world', id: 't1', cachePolicy: cachePolicy);
       expect(r2, 'hello');
 
       controller.onClose();

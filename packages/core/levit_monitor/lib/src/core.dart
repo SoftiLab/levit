@@ -1,5 +1,8 @@
 part of '../levit_monitor.dart';
 
+/// Function signature for sensitive data obfuscation.
+typedef LevitObfuscator = String Function(dynamic value);
+
 /// The authoritative entry point for application monitoring and diagnostics.
 ///
 /// [LevitMonitor] acts as a unified hub that collects events from both the
@@ -11,6 +14,9 @@ class LevitMonitor {
 
   /// The active predicate used to filter outgoing events.
   static bool Function(MonitorEvent event)? _filter;
+
+  /// The active obfuscator used for sensitive data.
+  static LevitObfuscator _obfuscator = (value) => '***';
 
   /// Returns the current event filter, if any.
   static bool Function(MonitorEvent event)? get filter => _filter;
@@ -31,6 +37,14 @@ class LevitMonitor {
   static void setFilter(bool Function(MonitorEvent event)? filter) {
     _filter = filter;
   }
+
+  /// Configures a global obfuscator for sensitive data.
+  static void setObfuscator(LevitObfuscator? obfuscator) {
+    _obfuscator = obfuscator ?? (value) => '***';
+  }
+
+  /// Obfuscates a [value] if it is considered sensitive.
+  static dynamic obfuscate(dynamic value) => _obfuscator(value);
 
   /// Evaluates whether a specific [event] should be processed based on the
   /// current filter configuration.

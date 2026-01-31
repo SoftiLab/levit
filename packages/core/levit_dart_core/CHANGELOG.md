@@ -11,7 +11,7 @@
 ## 0.0.4
 
 - Optimized `Zone.current` lookups for auto-linking (fast-path when no capture is active).
-- Integrated with unified `LevitStateMiddleware` system.
+- Integrated with unified `LevitReactiveMiddleware` system.
 - Renamed `LevitScopeMiddleware.onInit` to `onDependencyInit`.
 - Improved controller lifecycle management and async initialization.
 

@@ -13,20 +13,20 @@ void main() {
       controller.onInit();
 
       // Start an isolate loop
-      controller.startIsolateLoop('test_loop', _noopLoopBody,
+      controller.loopEngine.startIsolateLoop('test_loop', _noopLoopBody,
           delay: const Duration(milliseconds: 10));
 
       // Wait for it to start
       await Future.delayed(const Duration(milliseconds: 50));
 
       // Pause it
-      controller.pauseService('test_loop');
+      controller.loopEngine.pauseService('test_loop');
       await Future.delayed(const Duration(milliseconds: 20));
 
       // Stop it while paused (This should hit the cleanup path for pauseCompleter in isolate)
-      controller.stopService('test_loop');
+      controller.loopEngine.stopService('test_loop');
 
-      expect(controller.getServiceStatus('test_loop'), isNull);
+      expect(controller.loopEngine.getServiceStatus('test_loop'), isNull);
 
       controller.onClose();
     });

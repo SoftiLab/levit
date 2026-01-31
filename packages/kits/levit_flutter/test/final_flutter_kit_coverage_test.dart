@@ -8,7 +8,7 @@ class LifecycleController extends LevitController with LevitAppLifecycleMixin {
 }
 
 class LifecycleLoopController extends LevitController
-    with LevitLoopExecutionMixin, LevitLoopLifecycleMixin {
+    with LevitLoopExecutionMixin, LevitLoopExecutionLifecycleMixin {
   @override
   void onInit() => super.onInit();
   @override

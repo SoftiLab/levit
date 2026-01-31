@@ -324,4 +324,7 @@ class _ErrorReactive<T> implements LxReactive<T> {
 
   @override
   final int id = 0;
+
+  @override
+  bool isSensitive = false;
 }

@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:levit_flutter_core/levit_flutter_core.dart';
 
 void main() {
-  group('LevitState UI Integration', () {
+  group('LevitStore UI Integration', () {
     testWidgets('LView.state resolves and reacts', (tester) async {
-      final counter = LevitState((ref) => 0.lx);
+      final counter = LevitStore((ref) => 0.lx);
 
       await tester.pumpWidget(
         LView.state(
@@ -25,7 +25,7 @@ void main() {
     });
 
     testWidgets('LScopedView.state creates isolated scope', (tester) async {
-      final state = LevitState((ref) => 'default'.lx);
+      final state = LevitStore((ref) => 'default'.lx);
 
       await tester.pumpWidget(
         Column(

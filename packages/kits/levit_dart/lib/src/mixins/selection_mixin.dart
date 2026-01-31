@@ -1,4 +1,4 @@
-import 'package:levit_dart_core/levit_dart_core.dart';
+part of '../../levit_dart.dart';
 
 /// A mixin for [LevitController] that manages selection state.
 ///

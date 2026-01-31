@@ -3,7 +3,9 @@ part of '../../levit_flutter.dart';
 /// A mixin that automatically pauses execution loops when the app goes to background.
 ///
 /// It requires [LevitLoopExecutionMixin] to function.
-mixin LevitLoopLifecycleMixin on LevitController, LevitLoopExecutionMixin {
+/// LevitLoopExecutionMixin
+mixin LevitLoopExecutionLifecycleMixin
+    on LevitController, LevitLoopExecutionMixin {
   late final _LifecycleLoopObserver _lifecycleObserver;
 
   @override
@@ -27,7 +29,7 @@ mixin LevitLoopLifecycleMixin on LevitController, LevitLoopExecutionMixin {
 }
 
 class _LifecycleLoopObserver with WidgetsBindingObserver {
-  final LevitLoopLifecycleMixin _mixin;
+  final LevitLoopExecutionLifecycleMixin _mixin;
 
   _LifecycleLoopObserver(this._mixin);
 
@@ -35,10 +37,12 @@ class _LifecycleLoopObserver with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
-        _mixin.pauseAllServices(force: _mixin.pauseLifecycleServicesForce);
+        _mixin.loopEngine
+            .pauseAllServices(force: _mixin.pauseLifecycleServicesForce);
         break;
       case AppLifecycleState.resumed:
-        _mixin.resumeAllServices(force: _mixin.pauseLifecycleServicesForce);
+        _mixin.loopEngine
+            .resumeAllServices(force: _mixin.pauseLifecycleServicesForce);
         break;
       default:
         // Do nothing for inactive or detached

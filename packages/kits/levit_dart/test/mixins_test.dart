@@ -34,7 +34,7 @@ void main() {
     });
 
     test('executes simple task', () async {
-      final result = await service.runTask(() async => 'success');
+      final result = await service.tasksEngine.schedule(() async => 'success');
       expect(result, 'success');
     });
 
@@ -48,7 +48,7 @@ void main() {
       final executionOrder = <String>[];
 
       Future<void> run(String id, TaskPriority priority) {
-        return service.runTask(
+        return service.tasksEngine.schedule(
           () async {
             executionOrder.add('start_$id');
             await completers[id]!.future;
@@ -99,7 +99,7 @@ void main() {
     test('retries on failure', () async {
       int attempts = 0;
       try {
-        await service.runTask(
+        await service.tasksEngine.schedule(
           () async {
             attempts++;
             if (attempts < 3) throw 'fail';
@@ -116,7 +116,7 @@ void main() {
 
     test('linear backoff', () async {
       int attempts = 0;
-      await service.runTask(
+      await service.tasksEngine.schedule(
         () async {
           attempts++;
           if (attempts < 3) throw 'fail';
@@ -132,7 +132,7 @@ void main() {
     test('fails after max retries', () async {
       int attempts = 0;
       try {
-        await service.runTask(
+        await service.tasksEngine.schedule(
           () async {
             attempts++;
             throw 'fail';
@@ -154,13 +154,13 @@ void main() {
     test('cancels active task', () async {
       final completer = Completer();
       final done = Completer();
-      service.runTask(() async {
+      service.tasksEngine.schedule(() async {
         await completer.future;
         done.complete();
       }, id: 't1');
 
       await Future.delayed(Duration.zero);
-      service.cancelTask('t1');
+      service.tasksEngine.cancel('t1');
       completer.complete();
       await expectLater(done.future, completes);
     });
@@ -169,13 +169,13 @@ void main() {
       final b1 = Completer();
       final b2 = Completer();
       // Saturate concurrency (max=2)
-      service.runTask(() => b1.future, id: 'b1');
-      service.runTask(() => b2.future, id: 'b2');
+      service.tasksEngine.schedule(() => b1.future, id: 'b1');
+      service.tasksEngine.schedule(() => b2.future, id: 'b2');
 
       bool ran = false;
-      service.runTask(() async => ran = true, id: 'queued');
+      service.tasksEngine.schedule(() async => ran = true, id: 'queued');
 
-      service.cancelTask('queued');
+      service.tasksEngine.cancel('queued');
       b1.complete();
       b2.complete();
       await Future.delayed(Duration.zero);
@@ -188,7 +188,7 @@ void main() {
       final started = Completer();
       int attempts = 0;
       bool onErrorCalled = false;
-      final future = service.runTask(
+      final future = service.tasksEngine.schedule(
         () async {
           attempts++;
           if (attempts == 1) {
@@ -209,7 +209,7 @@ void main() {
       // Now it's likely finished the throw and is entering the Future.delayed(200ms)
       await Future.delayed(const Duration(milliseconds: 50));
 
-      service.cancelTask('retry_cancel_loop');
+      service.tasksEngine.cancel('retry_cancel_loop');
 
       final result = await future;
       expect(result, null);
@@ -220,9 +220,9 @@ void main() {
     test('cancelAllTasks iterates active tasks', () async {
       final c1 = Completer();
       final c2 = Completer();
-      service.runTask(() => c1.future, id: 'a1');
-      service.runTask(() => c2.future, id: 'a2');
-      service.cancelAllTasks();
+      service.tasksEngine.schedule(() => c1.future, id: 'a1');
+      service.tasksEngine.schedule(() => c2.future, id: 'a2');
+      service.tasksEngine.cancelAll();
       c1.complete();
       c2.complete();
     });
@@ -231,10 +231,10 @@ void main() {
       final b1 = Completer();
       final b2 = Completer();
       // Saturate concurrency (max=2)
-      service.runTask(() => b1.future);
-      service.runTask(() => b2.future);
+      service.tasksEngine.schedule(() => b1.future);
+      service.tasksEngine.schedule(() => b2.future);
 
-      final future = service.runTask(
+      final future = service.tasksEngine.schedule(
         () => throw 'error',
         onError: (e, s) => throw 'bubble',
       );
@@ -245,10 +245,12 @@ void main() {
       await expectLater(future, throwsA('bubble'));
     });
 
-    test('uses onServiceError', () async {
+    test('uses onTaskError', () async {
       bool caught = false;
-      service.onServiceError = (e, s) => caught = true;
-      await service.runTask(() => throw 'error');
+      service.tasksEngine.config(onTaskError: (e, s) => caught = true);
+      try {
+        await service.tasksEngine.schedule(() => throw 'error');
+      } catch (_) {}
       expect(caught, true);
     });
   });
@@ -268,13 +270,13 @@ void main() {
         return 'done';
       }, id: 'task1');
 
-      expect(controller.tasks['task1'], isA<LxWaiting>());
+      expect(controller.tasks['task1']?.status, isA<LxWaiting>());
 
       completer.complete();
       await future;
 
-      expect(controller.tasks['task1'], isA<LxSuccess>());
-      expect((controller.tasks['task1'] as LxSuccess).value, 'done');
+      expect(controller.tasks['task1']?.status, isA<LxSuccess>());
+      expect((controller.tasks['task1']?.status as LxSuccess).value, 'done');
     });
 
     test('updates totalProgress', () async {
@@ -313,9 +315,9 @@ void main() {
     });
 
     test('clearCompleted removes success/idle', () async {
-      controller.tasks['s'] = LxSuccess(1);
-      controller.tasks['i'] = LxIdle();
-      controller.tasks['w'] = LxWaiting();
+      controller.tasks['s'] = TaskDetails(status: LxSuccess(1));
+      controller.tasks['i'] = TaskDetails(status: LxIdle());
+      controller.tasks['w'] = TaskDetails(status: LxWaiting());
 
       controller.clearCompleted();
 
@@ -327,8 +329,10 @@ void main() {
     test('onTaskError catches errors', () async {
       bool caught = false;
       controller.onTaskError = (e, s) => caught = true;
-      await controller.runTask(() => throw 'fail', id: 't1');
-      expect(controller.tasks['t1'], isA<LxError>());
+      try {
+        await controller.runTask(() => throw 'fail', id: 't1');
+      } catch (_) {}
+      expect(controller.tasks['t1']?.status, isA<LxError>());
       expect(caught, true);
     });
 

@@ -97,6 +97,7 @@ class StateSnapshot {
         );
         reactive.value = v['value'];
         reactive.valueType = v['valueType'];
+        reactive.isSensitive = v['isSensitive'] ?? false;
         reactive.listenerCount = v['listenerCount'] ?? 0;
         if (v['dependencies'] != null) {
           reactive.dependencies = List<int>.from(v['dependencies']);
@@ -166,8 +167,8 @@ class StateSnapshot {
           dep.type = DependencyType.controller;
         } else if (instance.runtimeType
             .toString()
-            .contains('LevitStateInstance')) {
-          dep.type = DependencyType.state;
+            .contains('LevitStoreInstance')) {
+          dep.type = DependencyType.store;
         } else {
           dep.type = DependencyType.other;
         }
@@ -182,6 +183,7 @@ class StateSnapshot {
         id: event.reactive.id,
         name: event.reactive.name ?? '?',
         ownerId: event.reactive.ownerId,
+        isSensitive: event.reactive.isSensitive,
       ),
     );
 
@@ -191,6 +193,9 @@ class StateSnapshot {
       reactive.ownerId = event.reactive.ownerId;
       reactive.parseOwnerId();
     }
+
+    // Update sensitivity
+    reactive.isSensitive = event.reactive.isSensitive;
 
     if (event is ReactiveInitEvent) {
       reactive.value = event.toJson()['initialValue'];
@@ -240,7 +245,7 @@ class ScopeModel {
 
 enum DependencyStatus { registered, creating, active }
 
-enum DependencyType { controller, state, other }
+enum DependencyType { controller, store, other }
 
 class DependencyModel {
   final int scopeId;
@@ -279,6 +284,7 @@ class ReactiveModel {
   final int id;
   final String name;
   String? ownerId;
+  bool isSensitive;
   dynamic value;
   String? valueType;
 
@@ -291,7 +297,12 @@ class ReactiveModel {
 
   int listenerCount = 0;
 
-  ReactiveModel({required this.id, required this.name, this.ownerId}) {
+  ReactiveModel({
+    required this.id,
+    required this.name,
+    this.ownerId,
+    this.isSensitive = false,
+  }) {
     parseOwnerId();
   }
 
@@ -313,6 +324,7 @@ class ReactiveModel {
         'id': id,
         'name': name,
         'ownerId': ownerId,
+        'isSensitive': isSensitive,
         'value': value,
         'valueType': valueType,
         'scopeId': scopeId,

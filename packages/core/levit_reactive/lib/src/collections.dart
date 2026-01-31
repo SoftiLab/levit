@@ -20,7 +20,8 @@ class LxList<E> extends LxVar<List<E>> implements List<E> {
   ///
   /// If [initial] is provided, it is used as the backing list.
   /// Otherwise, an empty list is created.
-  LxList([List<E>? initial, String? name]) : super(initial ?? <E>[]);
+  LxList([List<E>? initial, String? name, bool isSensitive = false])
+      : super(initial ?? <E>[], name: name, isSensitive: isSensitive);
 
   /// Creates an [LxList] from an existing [Iterable].
   factory LxList.from(Iterable<E> elements) {
@@ -311,7 +312,8 @@ class LxList<E> extends LxVar<List<E>> implements List<E> {
 /// ```
 class LxMap<K, V> extends LxVar<Map<K, V>> implements Map<K, V> {
   /// Creates a reactive map.
-  LxMap([Map<K, V>? initial, String? name]) : super(initial ?? <K, V>{});
+  LxMap([Map<K, V>? initial, String? name, bool isSensitive = false])
+      : super(initial ?? <K, V>{}, name: name, isSensitive: isSensitive);
 
   /// Creates an [LxMap] from an existing [Map].
   factory LxMap.from(Map<K, V> other) {
@@ -429,7 +431,8 @@ class LxMap<K, V> extends LxVar<Map<K, V>> implements Map<K, V> {
 /// reactivity for all mutating operations.
 class LxSet<E> extends LxVar<Set<E>> implements Set<E> {
   /// Creates a reactive set.
-  LxSet([Set<E>? initial, String? name]) : super(initial ?? <E>{});
+  LxSet([Set<E>? initial, String? name, bool isSensitive = false])
+      : super(initial ?? <E>{}, name: name, isSensitive: isSensitive);
 
   /// Creates an [LxSet] from an existing [Iterable].
   factory LxSet.from(Iterable<E> elements) {

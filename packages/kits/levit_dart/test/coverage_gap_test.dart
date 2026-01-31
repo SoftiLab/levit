@@ -12,7 +12,7 @@ void main() {
       final controller = TestController();
       controller.onInit();
       // Should not throw
-      controller.cancelAllTasks();
+      controller.tasksEngine.cancelAll();
       controller.onClose();
     });
 

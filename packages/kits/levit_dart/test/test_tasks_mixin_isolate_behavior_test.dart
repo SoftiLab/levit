@@ -18,8 +18,8 @@ void main() {
       final controller = TestIsolateTasksController();
       controller.onInit();
 
-      final result = await controller.runIsolateTask(_testIsolateTask,
-          debugName: 'test_isolate');
+      final result = await controller.tasksEngine.schedule(_testIsolateTask,
+          debugName: 'test_isolate', runInIsolate: true);
       expect(result, 'isolate_result');
 
       controller.onClose();
@@ -30,12 +30,12 @@ void main() {
       final controller = TestIsolateReactiveTasksController();
       controller.onInit();
 
-      final result = await controller.runIsolateTask(_testIsolateTask,
-          debugName: 'test_reactive_isolate');
+      final result = await controller.runTask(_testIsolateTask,
+          debugName: 'test_reactive_isolate', runInIsolate: true);
       expect(result, 'isolate_result');
 
       // Verify reactive state was updated
-      expect(controller.tasks.values.any((s) => s is LxSuccess), isTrue);
+      expect(controller.tasks.values.any((d) => d.status is LxSuccess), isTrue);
 
       controller.onClose();
     });

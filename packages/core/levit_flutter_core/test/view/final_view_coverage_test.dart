@@ -5,11 +5,11 @@ import 'package:levit_flutter_core/levit_flutter_core.dart';
 void main() {
   group('levit_flutter_core Final Gaps', () {
     testWidgets('LAsyncView.state coverage', (tester) async {
-      final state = LevitAsyncState((ref) async => 'hello');
+      final state = LevitAsyncStore((ref) async => 'hello');
 
       await tester.pumpWidget(
         MaterialApp(
-          home: LAsyncView.state(
+          home: LAsyncView.store(
             state,
             builder: (context, value) => Text(value),
           ),
@@ -65,7 +65,7 @@ void main() {
     });
 
     testWidgets('LScopedView.state coverage', (tester) async {
-      final state = LevitState((ref) => 'scoped_val');
+      final state = LevitStore((ref) => 'scoped_val');
 
       await tester.pumpWidget(
         MaterialApp(
@@ -80,7 +80,7 @@ void main() {
     });
 
     testWidgets('LAsyncScopedView.state coverage', (tester) async {
-      final state = LevitState((ref) => 'async_scoped_val');
+      final state = LevitStore((ref) => 'async_scoped_val');
 
       await tester.pumpWidget(
         MaterialApp(
@@ -137,7 +137,7 @@ void main() {
               context.levit.put(() => 'global');
               context.levit.lazyPutAsync(() async => 'global_async');
 
-              final state = LevitState((ref) => 1);
+              final state = LevitStore((ref) => 1);
               context.levit.findOrNullAsync(key: state);
               context.levit.isRegistered(key: state);
               context.levit.isInstantiated(key: state);
