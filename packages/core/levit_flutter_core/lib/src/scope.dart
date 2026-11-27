@@ -218,7 +218,7 @@ class _LScopeState extends State<LScope> {
     final configure = widget.configure;
     unawaited(
       _lifecycle.replace(
-        parent: _parent,
+        parent: _parent!,
         name: widget.name ?? _uniqueScopeName(widget, this),
         initialize: (scope) => configure?.call(scope),
       ),
@@ -363,7 +363,7 @@ class _LAsyncScopeState extends State<LAsyncScope> {
     final configure = widget.configure;
     unawaited(
       _lifecycle.replace(
-        parent: _parent,
+        parent: _parent!,
         name: widget.name ?? _uniqueScopeName(widget, this),
         initialize: (scope) => configure(scope),
       ),

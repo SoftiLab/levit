@@ -30,7 +30,7 @@ void main() {
 
       snapshot.applyEvent(LevitSnapshotEvent(sessionId: 'abc', state: data));
 
-      final dep = snapshot.dependencies['1:MyService'];
+      final dep = snapshot.dependencies['1:MyService']!;
       expect(dep.type, LevitDependencyType.controller);
     });
 
@@ -63,7 +63,7 @@ void main() {
         ),
       );
 
-      final dep = snapshot.dependencies['1:MyState'];
+      final dep = snapshot.dependencies['1:MyState']!;
       expect(dep.type, LevitDependencyType.store);
     });
   });

@@ -13,7 +13,7 @@ void main() {
       final query = LevitAsyncMap<int, int>((_, __) => ++generation);
       expect(query.peek(1), isNull);
       await query.refresh(1);
-      final handle = query.peek(1);
+      final handle = query.peek(1)!;
       expect(query.keys, [1]);
       expect(await query.invalidate(2), isFalse);
       void listener() {}

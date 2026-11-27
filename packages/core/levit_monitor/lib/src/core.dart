@@ -298,7 +298,7 @@ class LevitMonitor {
       await previous.close();
     } finally {
       if (_previousWorkerMonitoring != null) {
-        Lx.enableWatchMonitoring = _previousWorkerMonitoring;
+        Lx.enableWatchMonitoring = _previousWorkerMonitoring!;
       }
       _previousWorkerMonitoring = null;
     }

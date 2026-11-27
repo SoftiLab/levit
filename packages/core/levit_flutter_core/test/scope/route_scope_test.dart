@@ -30,7 +30,7 @@ void main() {
                     builder: (context) {
                       final controller = context.levit.find<TestController>();
                       final route = LRouteScope.routeOf(context);
-                      final visibility = LRouteScope.visibilityOf(context);
+                      final visibility = LRouteScope.visibilityOf(context)!;
 
                       return Column(
                         children: [
@@ -226,7 +226,7 @@ void main() {
                     );
                   },
                   loading: (context) {
-                    final visibility = LAsyncRouteScope.visibilityOf(context);
+                    final visibility = LAsyncRouteScope.visibilityOf(context)!;
                     return LBuilder<LRouteVisibility>(
                       visibility,
                       (value) => Text('loading:${value.name}'),
@@ -237,7 +237,7 @@ void main() {
                       final controller = context.levit.find<TestController>();
                       final route = LAsyncRouteScope.routeOf(context);
                       final visibility =
-                          LAsyncRouteScope.visibilityOf(context);
+                          LAsyncRouteScope.visibilityOf(context)!;
 
                       return Column(
                         children: [
@@ -410,7 +410,7 @@ class _HomeRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LRouteScope.visibilityOf(context);
+            final visibility = LRouteScope.visibilityOf(context)!;
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -439,7 +439,7 @@ class _DetailsRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LRouteScope.visibilityOf(context);
+            final visibility = LRouteScope.visibilityOf(context)!;
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -469,7 +469,7 @@ class _AsyncHomeRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LAsyncRouteScope.visibilityOf(context);
+            final visibility = LAsyncRouteScope.visibilityOf(context)!;
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -499,7 +499,7 @@ class _AsyncDetailsRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LAsyncRouteScope.visibilityOf(context);
+            final visibility = LAsyncRouteScope.visibilityOf(context)!;
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,

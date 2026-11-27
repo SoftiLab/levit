@@ -97,7 +97,7 @@ class _LWatchElement extends ComponentElement
       _expectingSingle = false;
       final captured = _newNotifiers ??= [];
       if (_singleMatched) {
-        captured.add(_singleNotifier);
+        captured.add(_singleNotifier!);
       }
       captured.add(notifier);
       return;
