@@ -74,7 +74,7 @@ scripts:
     description: Run coverage checks
 
   publish:dry-run:
-    run: dart run melos publish --dry-run
+    run: dart run melos publish --dry-run --yes
     description: Validate unpublished publishable packages without publishing
 
   stress:

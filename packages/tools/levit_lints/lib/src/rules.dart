@@ -250,7 +250,10 @@ class _LifecycleSuperVisitor extends SimpleAstVisitor<void> {
     }
     final owner = _enclosingInterfaceElement(node);
     if (owner?.name == 'LevitController') return;
-    if (node.isStatic || node.isAbstract || !_isInsideResourceOwner(node)) {
+    // Avoid deprecated isAbstract (analyzer 14+) and missing isComplete (analyzer 12).
+    if (node.isStatic ||
+        (node.body is EmptyFunctionBody && node.externalKeyword == null) ||
+        !_isInsideResourceOwner(node)) {
       return;
     }
 

@@ -39,6 +39,8 @@ runs:
       shell: bash
       run: |
         echo "MELOS_SDK_PATH=$FLUTTER_ROOT" >> "$GITHUB_ENV"
+        dart pub global activate melos 6.3.3
+        echo "${PUB_CACHE:-$HOME/.pub-cache}/bin" >> "$GITHUB_PATH"
         dart pub get
 
     - name: Bootstrap workspace

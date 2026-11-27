@@ -20,4 +20,4 @@ jobs:
         run: dart run melos run build:devtools
 
       - name: Publish dry-run
-        run: dart run melos publish --dry-run
+        run: dart run melos publish --dry-run --yes
