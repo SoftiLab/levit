@@ -7,9 +7,9 @@ inputs:
     required: false
     default: stable
   flutter-version:
-    description: Validated 0.1.0 release toolchain (matches .fvmrc; includes Dart 3.10.9)
+    description: Flutter SDK used for repository checks (matches .fvmrc)
     required: false
-    default: '3.38.10'
+    default: '3.44.9'
   bootstrap:
     description: Run dart pub get and melos bootstrap
     required: false
