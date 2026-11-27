@@ -80,7 +80,7 @@ class CallbackOwner extends LevitController {
   void onInit() {
     super.onInit();
     callback = Zone.current.bindCallback(() {
-      0.lx;
+      final _ = 0.lx;
     });
   }
 }

@@ -238,7 +238,7 @@ class GetXDynamicGrid extends _DynamicGridBase {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      version.value;
+      final _ = version.value;
       return buildGrid();
     });
   }

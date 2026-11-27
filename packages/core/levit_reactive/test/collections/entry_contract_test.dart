@@ -53,7 +53,7 @@ void main() {
       final selected = LxComputed(() => source[index]);
       var updates = 0;
       selected.addListener(() {
-        selected.value;
+        final _ = selected.value;
         updates++;
       });
       index = 1;
@@ -139,7 +139,7 @@ void main() {
         expect(map.observedChannelCount, 0);
         map[1] = 2;
         void listen() {
-          selected.value;
+          final _ = selected.value;
         }
 
         selected.addListener(listen);
@@ -246,9 +246,9 @@ void main() {
       });
       for (final observable in [member, structure]) {
         observable.addListener(() {
-          observable.value;
+          final _ = observable.value;
         });
-        observable.value;
+        final _ = observable.value;
       }
       m.addListener(() => aggregate++);
       m[42] = 1;
@@ -301,7 +301,7 @@ void main() {
       final odds = list.where((n) => n?.isOdd ?? false);
       final derived = LxComputed(() => odds.length + (byIndex[2] ?? 0));
       derived.addListener(() {
-        derived.value;
+        final _ = derived.value;
       });
       expect(derived.value, 5);
       cast[0] = 4;

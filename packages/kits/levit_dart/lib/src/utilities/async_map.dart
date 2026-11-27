@@ -170,6 +170,8 @@ final class _AsyncMapResource<T>
     try {
       _start();
     } catch (_) {
+      // Subscribe to the state notifier before rethrowing the start failure.
+      // ignore: unnecessary_statements
       _state.value;
       rethrow;
     }

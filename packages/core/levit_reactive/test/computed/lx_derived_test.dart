@@ -368,6 +368,7 @@ void main() {
       LxSpi.proxy = _MockObserver(streams);
 
       // Access status to trigger registration
+      // ignore: unnecessary_statements
       future.status;
 
       expect((LxSpi.proxy as _MockObserver).notifiers.length, 1);

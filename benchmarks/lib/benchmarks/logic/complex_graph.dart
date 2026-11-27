@@ -67,7 +67,7 @@ class LevitGraphBenchmark extends BenchmarkImplementation {
     d = LxComputed(() => b.value + c.value, staticDeps: staticDeps);
 
     listener = () {
-      d.value;
+      final _ = d.value;
     };
     d.addListener(listener);
     expectedA = 0;
