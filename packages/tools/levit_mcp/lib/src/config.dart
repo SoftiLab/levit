@@ -192,7 +192,7 @@ final class LevitMcpConfig {
     if (results.flag('help')) return null;
 
     int parsePositiveInt(String name, {int min = 1, int? max}) {
-      final raw = results.option(name)!;
+      final raw = results.option(name);
       final value = int.tryParse(raw);
       if (value == null || value < min || (max != null && value > max)) {
         throw FormatException('Invalid value for --$name: $raw');

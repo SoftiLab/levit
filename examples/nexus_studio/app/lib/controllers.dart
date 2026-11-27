@@ -70,13 +70,11 @@ class ProjectController extends LevitController {
 
   /// Creates a project controller.
   ProjectController({
-    WebSocketChannel? channel,
+    this._channel,
     WebSocketChannel Function(Uri)? connector,
-    Duration exportDelay = const Duration(seconds: 2),
+    this._exportDelay = const Duration(seconds: 2),
     LxStream<String>? sessionTimer,
-  })  : _channel = channel,
-        _exportDelay = exportDelay,
-        _connectFn = connector ?? WebSocketChannel.connect,
+  })  : _connectFn = connector ?? WebSocketChannel.connect,
         _sessionTimerOverride = sessionTimer;
 
   /// Showcase: LxFuture (Pillar 6)
