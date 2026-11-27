@@ -33,7 +33,7 @@ class ReactiveGraphView extends LView<LevitInspectorController> {
                     hintText: 'Filter by name, owner, or type...',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: controller.setReactiveSearch,
+                  onChanged: (v) => controller.reactiveSearch.value = v,
                 ),
               ),
               LWatch(() {
@@ -46,7 +46,8 @@ class ReactiveGraphView extends LView<LevitInspectorController> {
                         label: Text(_labelFor(mode)),
                         selected: active == mode,
                         visualDensity: VisualDensity.compact,
-                        onSelected: (_) => controller.setReactiveFilter(mode),
+                        onSelected: (_) =>
+                            controller.reactiveFilter.value = mode,
                       ),
                   ],
                 );
@@ -104,7 +105,7 @@ class ReactiveGraphView extends LView<LevitInspectorController> {
                           '${v.listenerCount} L',
                           style: const TextStyle(fontSize: 11),
                         ),
-                        onTap: () => controller.selectReactive(v.id),
+                        onTap: () => controller.selectedReactiveId.value = v.id,
                       );
                     },
                   ),
@@ -181,7 +182,7 @@ class _ReactiveDetailPane extends StatelessWidget {
               dense: true,
               title: Text(dep.name),
               subtitle: Text(dep.isSensitive ? '***' : '${dep.value}'),
-              onTap: () => controller.selectReactive(dep.id),
+              onTap: () => controller.selectedReactiveId.value = dep.id,
             ),
           ),
         const SizedBox(height: 16),
@@ -198,7 +199,7 @@ class _ReactiveDetailPane extends StatelessWidget {
               dense: true,
               title: Text(dep.name),
               subtitle: Text(dep.isSensitive ? '***' : '${dep.value}'),
-              onTap: () => controller.selectReactive(dep.id),
+              onTap: () => controller.selectedReactiveId.value = dep.id,
             ),
           ),
       ],

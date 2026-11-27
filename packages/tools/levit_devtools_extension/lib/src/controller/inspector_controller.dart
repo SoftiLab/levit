@@ -105,95 +105,77 @@ class LevitInspectorController extends LevitController {
     dispose: (controller) => controller.dispose(),
   );
 
-  late final LxComputed<List<LevitDiagnosticFinding>> _findings = computed(
-    () {
-      revision();
-      return LevitSnapshotDiagnostics.analyze(
-        _snapshot,
-        recentErrors: recentErrors,
-        highListenerThreshold: highListenerThreshold(),
-      );
-    },
-    name: 'findings',
-  );
+  late final _findings = computed(() {
+    revision();
+    return LevitSnapshotDiagnostics.analyze(
+      _snapshot,
+      recentErrors: recentErrors,
+      highListenerThreshold: highListenerThreshold(),
+    );
+  }, name: 'findings');
 
-  late final LxComputed<List<ScopeTreeNode>> _flattenedScopes = computed(
-    () {
-      revision();
-      return _buildScopeTree(_snapshot.scopes);
-    },
-    name: 'flattenedScopes',
-  );
+  late final _flattenedScopes = computed(() {
+    revision();
+    return _buildScopeTree(_snapshot.scopes);
+  }, name: 'flattenedScopes');
 
-  late final LxComputed<List<LevitReactiveModel>> _filteredReactives = computed(
-    () {
-      revision();
-      final query = reactiveSearch().trim().toLowerCase();
-      final filter = reactiveFilter();
-      final threshold = highListenerThreshold();
+  late final _filteredReactives = computed(() {
+    revision();
+    final query = reactiveSearch().trim().toLowerCase();
+    final filter = reactiveFilter();
+    final threshold = highListenerThreshold();
 
-      final list = _snapshot.variables.values.where((v) {
-        switch (filter) {
-          case ReactiveFilterMode.all:
-            break;
-          case ReactiveFilterMode.sensitive:
-            if (!v.isSensitive) return false;
-          case ReactiveFilterMode.unowned:
-            if (v.ownerId != null &&
-                v.ownerId!.isNotEmpty &&
-                v.ownerId != '?') {
-              return false;
-            }
-          case ReactiveFilterMode.computed:
-            if (v.dependencies.isEmpty) return false;
-          case ReactiveFilterMode.highListeners:
-            if (v.listenerCount < threshold) return false;
-        }
-        if (query.isEmpty) return true;
-        return v.name.toLowerCase().contains(query) ||
-            (v.ownerId?.toLowerCase().contains(query) ?? false) ||
-            (v.valueType?.toLowerCase().contains(query) ?? false) ||
-            '${v.id}'.contains(query);
-      }).toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
-      return list;
-    },
-    name: 'filteredReactives',
-  );
-
-  late final LxComputed<List<LevitEventEnvelope>> _filteredTimeline = computed(
-    () {
-      revision();
-      final query = timelineSearch().trim().toLowerCase();
-      final category = timelineCategory();
-      final matched = <LevitEventEnvelope>[];
-      for (final envelope in _snapshot.events.reversed) {
-        if (category != null && envelope.category != category) continue;
-        if (query.isNotEmpty) {
-          final data = envelope.data;
-          final haystack =
-              '${envelope.type} ${envelope.category} ${data['name'] ?? ''} '
-                      '${data['key'] ?? ''} ${data['ownerId'] ?? ''} '
-                      '${data['scopeName'] ?? ''} ${data['error'] ?? ''}'
-                  .toLowerCase();
-          if (!haystack.contains(query)) continue;
-        }
-        matched.add(envelope);
+    final list = _snapshot.variables.values.where((v) {
+      switch (filter) {
+        case ReactiveFilterMode.all:
+          break;
+        case ReactiveFilterMode.sensitive:
+          if (!v.isSensitive) return false;
+        case ReactiveFilterMode.unowned:
+          if (v.ownerId != null && v.ownerId!.isNotEmpty && v.ownerId != '?') {
+            return false;
+          }
+        case ReactiveFilterMode.computed:
+          if (v.dependencies.isEmpty) return false;
+        case ReactiveFilterMode.highListeners:
+          if (v.listenerCount < threshold) return false;
       }
-      return matched;
-    },
-    name: 'filteredTimeline',
-  );
+      if (query.isEmpty) return true;
+      return v.name.toLowerCase().contains(query) ||
+          (v.ownerId?.toLowerCase().contains(query) ?? false) ||
+          (v.valueType?.toLowerCase().contains(query) ?? false) ||
+          '${v.id}'.contains(query);
+    }).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    return list;
+  }, name: 'filteredReactives');
 
-  late final LxComputed<List<MapEntry<String, Map<String, dynamic>>>>
-      _sortedTaskTrees = computed(
-    () {
-      revision();
-      return _snapshot.taskTrees.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
-    },
-    name: 'sortedTaskTrees',
-  );
+  late final _filteredTimeline = computed(() {
+    revision();
+    final query = timelineSearch().trim().toLowerCase();
+    final category = timelineCategory();
+    final matched = <LevitEventEnvelope>[];
+    for (final envelope in _snapshot.events.reversed) {
+      if (category != null && envelope.category != category) continue;
+      if (query.isNotEmpty) {
+        final data = envelope.data;
+        final haystack =
+            '${envelope.type} ${envelope.category} ${data['name'] ?? ''} '
+                    '${data['key'] ?? ''} ${data['ownerId'] ?? ''} '
+                    '${data['scopeName'] ?? ''} ${data['error'] ?? ''}'
+                .toLowerCase();
+        if (!haystack.contains(query)) continue;
+      }
+      matched.add(envelope);
+    }
+    return matched;
+  }, name: 'filteredTimeline');
+
+  late final _sortedTaskTrees = computed(() {
+    revision();
+    return _snapshot.taskTrees.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+  }, name: 'sortedTaskTrees');
 
   /// Creates an inspector controller backed by [_client].
   LevitInspectorController(this._client, {bool ownsClient = true})
@@ -370,51 +352,6 @@ class LevitInspectorController extends LevitController {
     revision.value++;
   }
 
-  /// Selects an inspector tab by index (`0..4`).
-  void selectTab(int index) {
-    activeTabIndex.value = index;
-  }
-
-  /// Selects a scope in the Scopes tab without changing tabs.
-  void selectScope(int scopeId) {
-    selectedScopeId.value = scopeId;
-  }
-
-  /// Selects a reactive variable in the Reactives tab without changing tabs.
-  void selectReactive(int reactiveId) {
-    selectedReactiveId.value = reactiveId;
-  }
-
-  /// Selects an event in the Timeline tab.
-  void selectEvent(int seq) {
-    selectedEventSeq.value = seq;
-  }
-
-  /// Updates the reactive search query.
-  void setReactiveSearch(String query) {
-    reactiveSearch.value = query;
-  }
-
-  /// Updates the active reactive filter pill.
-  void setReactiveFilter(ReactiveFilterMode mode) {
-    reactiveFilter.value = mode;
-  }
-
-  /// Updates the timeline search query.
-  void setTimelineSearch(String query) {
-    timelineSearch.value = query;
-  }
-
-  /// Updates the active timeline category filter.
-  void setTimelineCategory(String? category) {
-    timelineCategory.value = category;
-  }
-
-  /// Updates the high-listener warning threshold used by diagnostics and filters.
-  void setHighListenerThreshold(int threshold) {
-    highListenerThreshold.value = threshold;
-  }
-
   /// Jumps to a specific scope in the Scopes tab.
   void focusScope(int scopeId) {
     Levit.batch(() {
@@ -430,12 +367,6 @@ class LevitInspectorController extends LevitController {
       activeTabIndex.value = 1;
     });
   }
-
-  /// Switches to the Scopes tab.
-  void openScopesTab() => selectTab(0);
-
-  /// Switches to the Diagnostics tab.
-  void openDiagnosticsTab() => selectTab(4);
 
   /// Filters Reactives to unowned variables and switches to the Reactives tab.
   void showUnownedReactives() {

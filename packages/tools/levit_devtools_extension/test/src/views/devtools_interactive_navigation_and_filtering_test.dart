@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:levit_devtools_extension/src/client/devtools_client.dart';
 import 'package:levit_devtools_extension/src/views/levit_devtools_screen.dart';
+import 'package:levit_flutter/levit_flutter.dart';
 import 'package:levit_monitor/spi.dart';
 
 import '../../inspector_controller_test.dart';
@@ -383,34 +384,34 @@ void main() {
     );
 
     testWidgets(
-      'lazily creates and disposes an owned client via createClient when unmounted',
+      'resolves client from enclosing LScope and disposes it when unmounted',
       (tester) async {
-        late FakeDevToolsClient createdClient;
+        late FakeDevToolsClient scopedClient;
         var factoryCalls = 0;
 
         await tester.pumpWidget(
           MaterialApp(
-            home: LevitDevToolsScreen(
-              createClient: () {
+            home: LScope.put<LevitDevToolsClient>(
+              () {
                 factoryCalls++;
-                createdClient = FakeDevToolsClient(
+                scopedClient = FakeDevToolsClient(
                   snapshotResult: const LevitRemoteSnapshotResult.unattached(),
                 );
-                return createdClient;
+                return scopedClient;
               },
-              ownsClient: true,
+              child: const LevitDevToolsScreen(ownsClient: true),
             ),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(factoryCalls, 1);
-        expect(createdClient.disposed, isFalse);
+        expect(scopedClient.disposed, isFalse);
 
         await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
         await tester.pumpAndSettle();
 
-        expect(createdClient.disposed, isTrue);
+        expect(scopedClient.disposed, isTrue);
       },
     );
   });

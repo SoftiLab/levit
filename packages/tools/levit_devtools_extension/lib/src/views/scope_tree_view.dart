@@ -62,7 +62,7 @@ class ScopeTreeView extends LView<LevitInspectorController> {
                   '${isClosing ? ' • closing' : ''}',
                   style: const TextStyle(fontSize: 11),
                 ),
-                onTap: () => controller.selectScope(scope.id),
+                onTap: () => controller.selectedScopeId.value = scope.id,
               );
             },
           ),

@@ -12,14 +12,11 @@ import 'timeline_view.dart';
 
 /// Main Flutter DevTools screen for inspecting a live Levit application.
 ///
-/// Owns a dedicated [LScope] hosting [LevitInspectorController], allowing all
-/// child views to resolve the controller via [LView] and `context.levit.find`.
+/// Owns a dedicated [LScope] hosting [LevitInspectorController]. When [client]
+/// is omitted, resolves [LevitDevToolsClient] from the enclosing [LScope].
 class LevitDevToolsScreen extends LScopedView<LevitInspectorController> {
-  /// Optional pre-constructed transport client.
+  /// Optional explicit transport client; falls back to DI resolution.
   final LevitDevToolsClient? client;
-
-  /// Optional lazy transport client factory invoked once when configuring the scope.
-  final LevitDevToolsClient Function()? createClient;
 
   /// Whether [LevitInspectorController] should dispose the client when closed.
   final bool ownsClient;
@@ -28,14 +25,12 @@ class LevitDevToolsScreen extends LScopedView<LevitInspectorController> {
   const LevitDevToolsScreen({
     super.key,
     this.client,
-    this.createClient,
     this.ownsClient = false,
-  })  : assert(client != null || createClient != null),
-        super(autoWatch: false, scopeName: 'levit_devtools');
+  }) : super(autoWatch: false, scopeName: 'levit_devtools');
 
   @override
   void onConfigureScope(LevitScope scope) {
-    final resolvedClient = client ?? createClient!();
+    final resolvedClient = client ?? scope.find<LevitDevToolsClient>();
     scope.put(
       () => LevitInspectorController(resolvedClient, ownsClient: ownsClient),
     );
@@ -82,100 +77,73 @@ class _InspectorTabBar extends LView<LevitInspectorController> {
     controller.revision();
     final activeIndex = controller.activeTabIndex();
     final findings = controller.findings;
+    final colorScheme = Theme.of(context).colorScheme;
+    final tabs = [
+      ('Scopes (${controller.snapshot.scopes.length})', null),
+      ('Reactives (${controller.snapshot.variables.length})', null),
+      ('Tasks (${controller.snapshot.taskTrees.length})', null),
+      ('Timeline (${controller.snapshot.events.length})', null),
+      (
+        'Diagnostics',
+        findings.isEmpty
+            ? null
+            : _CountBadge(
+                count: findings.length,
+                hasError: controller.hasErrorFindings,
+              ),
+      ),
+    ];
 
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: colorScheme.surfaceContainerLow,
       child: Align(
         alignment: Alignment.centerLeft,
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _InspectorTabButton(
-                label: 'Scopes (${controller.snapshot.scopes.length})',
-                selected: activeIndex == 0,
-                onTap: () => controller.selectTab(0),
-              ),
-              _InspectorTabButton(
-                label: 'Reactives (${controller.snapshot.variables.length})',
-                selected: activeIndex == 1,
-                onTap: () => controller.selectTab(1),
-              ),
-              _InspectorTabButton(
-                label: 'Tasks (${controller.snapshot.taskTrees.length})',
-                selected: activeIndex == 2,
-                onTap: () => controller.selectTab(2),
-              ),
-              _InspectorTabButton(
-                label: 'Timeline (${controller.snapshot.events.length})',
-                selected: activeIndex == 3,
-                onTap: () => controller.selectTab(3),
-              ),
-              _InspectorTabButton(
-                label: 'Diagnostics',
-                selected: activeIndex == 4,
-                onTap: () => controller.selectTab(4),
-                trailing: findings.isEmpty
-                    ? null
-                    : _CountBadge(
-                        count: findings.length,
-                        hasError: controller.hasErrorFindings,
+              for (var i = 0; i < tabs.length; i++)
+                InkWell(
+                  onTap: () => controller.activeTabIndex.value = i,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: activeIndex == i
+                              ? colorScheme.primary
+                              : Colors.transparent,
+                          width: 2,
+                        ),
                       ),
-              ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          tabs[i].$1,
+                          style: TextStyle(
+                            color: activeIndex == i
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
+                            fontWeight: activeIndex == i
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                          ),
+                        ),
+                        if (tabs[i].$2 case final badge?) ...[
+                          const SizedBox(width: 6),
+                          badge,
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InspectorTabButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final Widget? trailing;
-
-  const _InspectorTabButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.trailing,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final foreground =
-        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: selected ? colorScheme.primary : Colors.transparent,
-              width: 2,
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: foreground,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: 6),
-              trailing!,
-            ],
-          ],
         ),
       ),
     );
@@ -201,13 +169,18 @@ class _ActiveInspectorTab extends LView<LevitInspectorController> {
 }
 
 class _HeaderToolbar extends LView<LevitInspectorController> {
-  const _HeaderToolbar() : super(autoWatch: false);
+  const _HeaderToolbar();
 
   @override
   Widget buildView(
     BuildContext context,
     LevitInspectorController controller,
   ) {
+    final isAttached = controller.attached();
+    final isPaused = controller.paused();
+    final queued = controller.pausedCount();
+    final findings = isAttached ? controller.findings : const [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Wrap(
@@ -230,82 +203,63 @@ class _HeaderToolbar extends LView<LevitInspectorController> {
               ),
             ],
           ),
-          LWatch(() {
-            final isAttached = controller.attached();
-            return Chip(
-              avatar: Icon(
-                isAttached ? Icons.check_circle : Icons.link_off,
+          Chip(
+            avatar: Icon(
+              isAttached ? Icons.check_circle : Icons.link_off,
+              size: 16,
+              color: isAttached ? Colors.green : Colors.orange,
+            ),
+            label: Text(
+              isAttached ? 'Connected (Read-Only)' : 'Not Attached',
+            ),
+            visualDensity: VisualDensity.compact,
+          ),
+          if (isAttached) ...[
+            OutlinedButton.icon(
+              onPressed: controller.togglePause,
+              icon: Icon(
+                isPaused ? Icons.play_arrow : Icons.pause,
                 size: 16,
-                color: isAttached ? Colors.green : Colors.orange,
               ),
               label: Text(
-                isAttached ? 'Connected (Read-Only)' : 'Not Attached',
+                isPaused ? 'Resume${queued > 0 ? ' (+$queued)' : ''}' : 'Pause',
               ),
-              visualDensity: VisualDensity.compact,
-            );
-          }),
-          LWatch(() {
-            if (!controller.attached()) {
-              return const SizedBox.shrink();
-            }
-            final isPaused = controller.paused();
-            final queued = controller.pausedCount();
-            final findings = controller.findings;
-
-            return Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: controller.togglePause,
-                  icon: Icon(
-                    isPaused ? Icons.play_arrow : Icons.pause,
-                    size: 16,
-                  ),
-                  label: Text(
-                    isPaused
-                        ? 'Resume${queued > 0 ? ' (+$queued)' : ''}'
-                        : 'Pause',
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: controller.loading() ? null : controller.refresh,
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text('Refresh'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final json = controller.exportRedactedJson();
-                    await Clipboard.setData(ClipboardData(text: json));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Copied redacted snapshot JSON.'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.copy_all, size: 16),
-                  label: const Text('Copy JSON'),
-                ),
-                if (findings.isNotEmpty)
-                  ActionChip(
-                    avatar: Icon(
-                      Icons.warning_amber_rounded,
-                      size: 16,
-                      color: controller.hasErrorFindings
-                          ? Colors.red
-                          : Colors.amber.shade700,
+            ),
+            OutlinedButton.icon(
+              onPressed: controller.loading() ? null : controller.refresh,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Refresh'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final json = controller.exportRedactedJson();
+                await Clipboard.setData(ClipboardData(text: json));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Copied redacted snapshot JSON.'),
+                      duration: Duration(seconds: 2),
                     ),
-                    label: Text('${findings.length} finding(s)'),
-                    onPressed: controller.openDiagnosticsTab,
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
-            );
-          }),
+                  );
+                }
+              },
+              icon: const Icon(Icons.copy_all, size: 16),
+              label: const Text('Copy JSON'),
+            ),
+            if (findings.isNotEmpty)
+              ActionChip(
+                avatar: Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: controller.hasErrorFindings
+                      ? Colors.red
+                      : Colors.amber.shade700,
+                ),
+                label: Text('${findings.length} finding(s)'),
+                onPressed: () => controller.activeTabIndex.value = 4,
+                visualDensity: VisualDensity.compact,
+              ),
+          ],
         ],
       ),
     );
@@ -339,7 +293,7 @@ class _CountBadge extends StatelessWidget {
 }
 
 class _UnattachedEmptyState extends LView<LevitInspectorController> {
-  const _UnattachedEmptyState() : super(autoWatch: false);
+  const _UnattachedEmptyState();
 
   static const _snippet =
       '''import 'package:levit_devtools/levit_devtools.dart';
@@ -355,6 +309,9 @@ Future<void> main() async {
     BuildContext context,
     LevitInspectorController controller,
   ) {
+    final loading = controller.loading();
+    final error = controller.errorMessage();
+
     return Center(
       child: SingleChildScrollView(
         child: ConstrainedBox(
@@ -391,35 +348,28 @@ Future<void> main() async {
                       style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                     ),
                   ),
-                  LWatch(() {
-                    final error = controller.errorMessage();
-                    if (error == null) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(
-                        'Last error: $error',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
-                        ),
+                  if (error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'Last error: $error',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 12,
                       ),
-                    );
-                  }),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      LWatch(() {
-                        final loading = controller.loading();
-                        return FilledButton.icon(
-                          onPressed: loading ? null : controller.refresh,
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: Text(
-                            loading ? 'Checking...' : 'Retry Connection',
-                          ),
-                        );
-                      }),
+                      FilledButton.icon(
+                        onPressed: loading ? null : controller.refresh,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: Text(
+                          loading ? 'Checking...' : 'Retry Connection',
+                        ),
+                      ),
                       OutlinedButton.icon(
                         onPressed: () {
                           Clipboard.setData(

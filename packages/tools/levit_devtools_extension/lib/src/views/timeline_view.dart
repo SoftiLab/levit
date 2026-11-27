@@ -44,7 +44,7 @@ class TimelineView extends LView<LevitInspectorController> {
                     hintText: 'Search timeline events...',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: controller.setTimelineSearch,
+                  onChanged: (v) => controller.timelineSearch.value = v,
                 ),
               ),
               LWatch(() {
@@ -58,7 +58,7 @@ class TimelineView extends LView<LevitInspectorController> {
                         selected: selected == category,
                         visualDensity: VisualDensity.compact,
                         onSelected: (_) =>
-                            controller.setTimelineCategory(category),
+                            controller.timelineCategory.value = category,
                       ),
                   ],
                 );
@@ -114,7 +114,8 @@ class TimelineView extends LView<LevitInspectorController> {
                           ),
                           visualDensity: VisualDensity.compact,
                         ),
-                        onTap: () => controller.selectEvent(envelope.seq),
+                        onTap: () =>
+                            controller.selectedEventSeq.value = envelope.seq,
                       );
                     },
                   ),

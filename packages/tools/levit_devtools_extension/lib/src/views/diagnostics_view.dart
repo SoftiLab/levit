@@ -43,7 +43,7 @@ class DiagnosticsView extends LView<LevitInspectorController> {
                 ],
                 onChanged: (next) {
                   if (next != null) {
-                    controller.setHighListenerThreshold(next);
+                    controller.highListenerThreshold.value = next;
                   }
                 },
               ),
@@ -130,7 +130,7 @@ class _FindingCard extends StatelessWidget {
                 if (finding.code == 'closing_scopes' ||
                     finding.code == 'pending_initializations')
                   TextButton(
-                    onPressed: controller.openScopesTab,
+                    onPressed: () => controller.activeTabIndex.value = 0,
                     child: const Text('Open Scopes'),
                   ),
               ],
