@@ -1,0 +1,18 @@
+name: levit
+description: Deterministic ownership and fine-grained reactivity for pure Dart applications.
+version: 0.1.0
+repository: https://github.com/softilab/levit
+topics:
+  - state-management
+  - dependency-injection
+  - framework
+
+environment:
+  sdk: ^3.2.0
+
+dependencies:
+  levit_dart: ^0.1.0
+
+dev_dependencies:
+  test: ^1.24.0
+  lints: '>=4.0.0 <7.0.0'

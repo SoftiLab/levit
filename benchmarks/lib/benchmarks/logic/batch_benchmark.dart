@@ -1,0 +1,349 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:levit_flutter/levit_flutter.dart';
+import '../../benchmark_config.dart';
+import '../../benchmark_engine.dart';
+
+/// Benchmark comparing batched vs un-batched updates.
+/// Demonstrates the value of Levit.batch() for bulk operations.
+class BatchVsUnBatchedBenchmark extends Benchmark {
+  @override
+  String get name => 'Batch vs Un-batched';
+
+  @override
+  String get description =>
+      '1000 updates with batching. Tests batch efficiency.';
+
+  @override
+  bool get isUI => false;
+
+  @override
+  BenchmarkClassification get classification =>
+      BenchmarkClassification.featureDemo;
+
+  @override
+  String get comparisonNote =>
+      'Levit uses a native batching primitive; others measure un-batched closest equivalents.';
+
+  @override
+  String implementationLabel(Framework framework) => framework == Framework.bloc
+      ? 'ValueNotifier (substitute)'
+      : framework.label;
+
+  @override
+  BenchmarkImplementation createImplementation(Framework framework) {
+    switch (framework) {
+      case Framework.levit:
+        return LevitBatchBenchmark();
+      case Framework.vanilla:
+        return VanillaBatchBenchmark();
+      case Framework.getx:
+        return GetXBatchBenchmark();
+      case Framework.bloc:
+        return BlocBatchBenchmark();
+      case Framework.riverpod:
+        return RiverpodBatchBenchmark();
+    }
+  }
+}
+
+// --- Levit ---
+class LevitBatchBenchmark extends BenchmarkImplementation {
+  LevitBatchBenchmark({this.staticDeps = false});
+
+  final bool staticDeps;
+  final List<LxVar<int>> sources = [];
+  late LxComputed<int> sum;
+  late VoidCallback listener;
+  int notifyCount = 0;
+  int observedSum = 0;
+  int expectedSum = 0;
+
+  @override
+  Future<void> setup() async {
+    sources.clear();
+    notifyCount = 0;
+    for (int i = 0; i < 100; i++) {
+      sources.add(LxVar(0));
+    }
+    sum = LxComputed(() {
+      int total = 0;
+      for (final s in sources) {
+        total += s.value;
+      }
+      return total;
+    }, staticDeps: staticDeps);
+    listener = () => notifyCount++;
+    sum.addListener(listener);
+    expectedSum = 0;
+  }
+
+  @override
+  Future<void> run() async {
+    notifyCount = 0;
+
+    // Batched: Should trigger only 1 notification
+    Levit.batch(() {
+      for (int i = 0; i < BenchmarkConfig.batchIterations; i++) {
+        sources[i % 100].value++;
+      }
+    });
+
+    await Future.microtask(() {});
+    expectedSum += BenchmarkConfig.batchIterations;
+    observedSum = _readTotal();
+  }
+
+  int _readTotal() => sum.value;
+
+  @override
+  Future<void> verify() async {
+    if (observedSum != expectedSum || notifyCount != 1) {
+      throw StateError(
+        'Levit batch mismatch: sum=${sum.value}, expected=$expectedSum, notifyCount=$notifyCount',
+      );
+    }
+  }
+
+  @override
+  Future<void> teardown() async {
+    sum.removeListener(listener);
+    await sum.close();
+    for (final s in sources) {
+      await s.close();
+    }
+  }
+}
+
+// --- Vanilla (no batching available) ---
+class VanillaBatchBenchmark extends BenchmarkImplementation {
+  final List<ValueNotifier<int>> sources = [];
+  int sum = 0;
+  int notifyCount = 0;
+  int observedSum = 0;
+  int expectedSum = 0;
+
+  @override
+  Future<void> setup() async {
+    sources.clear();
+    notifyCount = 0;
+    for (int i = 0; i < 100; i++) {
+      final notifier = ValueNotifier(0);
+      sources.add(notifier);
+    }
+
+    void updateSum() {
+      notifyCount++;
+      int total = 0;
+      for (final s in sources) {
+        total += s.value;
+      }
+      sum = total;
+    }
+
+    for (final s in sources) {
+      s.addListener(updateSum);
+    }
+    expectedSum = 0;
+  }
+
+  @override
+  Future<void> run() async {
+    notifyCount = 0;
+
+    // No batching - will trigger many notifications
+    for (int i = 0; i < BenchmarkConfig.batchIterations; i++) {
+      sources[i % 100].value++;
+    }
+
+    await Future.microtask(() {});
+    expectedSum += BenchmarkConfig.batchIterations;
+    observedSum = _readTotal();
+  }
+
+  int _readTotal() => sum;
+
+  @override
+  Future<void> verify() async {
+    if (observedSum != expectedSum ||
+        notifyCount != BenchmarkConfig.batchIterations) {
+      throw StateError(
+        'Vanilla batch mismatch: sum=$sum, expected=$expectedSum, notifyCount=$notifyCount',
+      );
+    }
+  }
+
+  @override
+  Future<void> teardown() async {
+    for (final s in sources) {
+      s.dispose();
+    }
+  }
+}
+
+// --- GetX ---
+class GetXBatchBenchmark extends BenchmarkImplementation {
+  final List<RxInt> sources = [];
+  int notifyCount = 0;
+  int observedSum = 0;
+  final subs = <StreamSubscription>[];
+  int expectedSum = 0;
+
+  @override
+  Future<void> setup() async {
+    sources.clear();
+    subs.clear();
+    notifyCount = 0;
+    for (int i = 0; i < 100; i++) {
+      sources.add(0.obs);
+    }
+
+    for (final s in sources) {
+      subs.add(s.listen((_) => notifyCount++));
+    }
+    expectedSum = 0;
+  }
+
+  @override
+  Future<void> run() async {
+    notifyCount = 0;
+
+    for (int i = 0; i < BenchmarkConfig.batchIterations; i++) {
+      sources[i % 100].value++;
+    }
+
+    await Future.microtask(() {});
+    expectedSum += BenchmarkConfig.batchIterations;
+    observedSum = _readTotal();
+  }
+
+  int _readTotal() => sources.fold<int>(0, (sum, source) => sum + source.value);
+
+  @override
+  Future<void> verify() async {
+    final total = observedSum;
+    if (total != expectedSum ||
+        notifyCount != BenchmarkConfig.batchIterations) {
+      throw StateError(
+        'GetX batch mismatch: total=$total, expected=$expectedSum, notifyCount=$notifyCount',
+      );
+    }
+  }
+
+  @override
+  Future<void> teardown() async {
+    for (final s in subs) {
+      await s.cancel();
+    }
+  }
+}
+
+// --- Riverpod ---
+class RiverpodBatchBenchmark extends BenchmarkImplementation {
+  late ProviderContainer container;
+  final List<StateProvider<int>> providers = [];
+  int notifyCount = 0;
+  int observedSum = 0;
+  int expectedSum = 0;
+
+  @override
+  Future<void> setup() async {
+    container = ProviderContainer();
+    providers.clear();
+    notifyCount = 0;
+
+    for (int i = 0; i < 100; i++) {
+      final p = StateProvider<int>((ref) => 0);
+      providers.add(p);
+      container.listen(p, (_, __) => notifyCount++);
+    }
+    expectedSum = 0;
+  }
+
+  @override
+  Future<void> run() async {
+    notifyCount = 0;
+
+    for (int i = 0; i < BenchmarkConfig.batchIterations; i++) {
+      container.read(providers[i % 100].notifier).state++;
+    }
+
+    await Future.microtask(() {});
+    expectedSum += BenchmarkConfig.batchIterations;
+    observedSum = _readTotal();
+  }
+
+  int _readTotal() =>
+      providers.fold<int>(0, (sum, provider) => sum + container.read(provider));
+
+  @override
+  Future<void> verify() async {
+    final total = observedSum;
+    if (total != expectedSum ||
+        notifyCount != BenchmarkConfig.batchIterations) {
+      throw StateError(
+        'Riverpod batch mismatch: total=$total, expected=$expectedSum, notifyCount=$notifyCount',
+      );
+    }
+  }
+
+  @override
+  Future<void> teardown() async {
+    container.dispose();
+  }
+}
+
+// --- BLoC ---
+class BlocBatchBenchmark extends BenchmarkImplementation {
+  final List<ValueNotifier<int>> sources = [];
+  int notifyCount = 0;
+  int observedSum = 0;
+  int expectedSum = 0;
+
+  @override
+  Future<void> setup() async {
+    sources.clear();
+    notifyCount = 0;
+    for (int i = 0; i < 100; i++) {
+      final notifier = ValueNotifier(0);
+      notifier.addListener(() => notifyCount++);
+      sources.add(notifier);
+    }
+    expectedSum = 0;
+  }
+
+  @override
+  Future<void> run() async {
+    notifyCount = 0;
+
+    for (int i = 0; i < BenchmarkConfig.batchIterations; i++) {
+      sources[i % 100].value++;
+    }
+
+    await Future.microtask(() {});
+    expectedSum += BenchmarkConfig.batchIterations;
+    observedSum = _readTotal();
+  }
+
+  int _readTotal() => sources.fold<int>(0, (sum, source) => sum + source.value);
+
+  @override
+  Future<void> verify() async {
+    final total = observedSum;
+    if (total != expectedSum ||
+        notifyCount != BenchmarkConfig.batchIterations) {
+      throw StateError(
+        'BLoC batch mismatch: total=$total, expected=$expectedSum, notifyCount=$notifyCount',
+      );
+    }
+  }
+
+  @override
+  Future<void> teardown() async {
+    for (final s in sources) {
+      s.dispose();
+    }
+  }
+}

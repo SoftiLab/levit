@@ -1,0 +1,49 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+*.dart.js
+*.js.deps
+*.js.map
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Coverage
+**/coverage/
+coverage_report/
+*.lcov
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Misc
+*.log
+.env
+.env.*
+!.env.example
+.temp-docs
+**/doc/api/
+pana_report.md
+# Keep only the recurring benchmark and stress reports in Git.
+reports/*
+!reports/benchmark_report.md
+!reports/release_benchmark_report.md
+!reports/stress_test_report.md
+
+# FVM Version Cache
+.fvm/

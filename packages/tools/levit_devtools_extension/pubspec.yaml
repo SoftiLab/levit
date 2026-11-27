@@ -1,0 +1,25 @@
+name: levit_devtools_extension
+description: Flutter DevTools web UI extension for inspecting live Levit applications.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.4.0
+  flutter: '>=3.22.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  devtools_extensions: '>=0.1.1 <0.5.0'
+  levit_devtools: ^0.1.0
+  levit_flutter: ^0.1.0
+  levit_monitor: ^0.1.0
+  vm_service: '>=14.2.1 <16.0.0'
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: '>=4.0.0 <7.0.0'
+
+flutter:
+  uses-material-design: true

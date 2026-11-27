@@ -1,0 +1,23 @@
+name: levit_monitor
+description: Optional runtime telemetry, redaction, and transport pipeline for Levit applications.
+repository: https://github.com/softilab/levit
+version: 0.1.0
+topics:
+  - devtools
+  - debugging
+  - monitoring
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  # Levit Core
+  levit_reactive: ^0.1.0
+  levit_scope: ^0.1.0
+  levit_dart_core: ^0.1.0
+
+dev_dependencies:
+  levit: ^0.1.0
+  test: ^1.24.0
+  lints: '>=4.0.0 <7.0.0'
+  rxdart: ^0.28.0

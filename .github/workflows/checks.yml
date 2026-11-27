@@ -1,0 +1,108 @@
+name: Checks
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  package-minimums:
+    name: Package minimums (Flutter ${{ matrix.flutter }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - flutter: '3.10.0' # Dart 3.0.0
+            dart_packages: packages/core/levit_scope
+          - flutter: '3.16.0' # Dart 3.2.0
+            dart_packages: packages/core/levit_reactive packages/core/levit_dart_core packages/kits/levit_dart packages/kits/levit
+            flutter_packages: packages/core/levit_flutter_core packages/kits/levit_flutter
+          - flutter: '3.22.0' # Dart 3.4.0
+            dart_packages: packages/core/levit_monitor packages/tools/levit_devtools
+            flutter_packages: packages/tools/levit_devtools_extension
+          - flutter: '3.29.0' # Dart 3.7.0
+            dart_packages: packages/tools/levit_mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-levit
+        with:
+          flutter-version: ${{ matrix.flutter }}
+          bootstrap: 'false'
+          pub-cache-suffix: ${{ hashFiles('**/pubspec.yaml') }}
+      - name: Test packages at their minimum SDK
+        env:
+          DART_PACKAGES: ${{ matrix.dart_packages }}
+          FLUTTER_PACKAGES: ${{ matrix.flutter_packages }}
+        run: |
+          for package in $DART_PACKAGES; do
+            (cd "$package" && dart pub get && dart test)
+          done
+          for package in $FLUTTER_PACKAGES; do
+            (cd "$package" && flutter pub get && flutter test --no-pub)
+          done
+      - name: Package the DevTools web extension at its minimum SDK
+        if: matrix.flutter == '3.22.0'
+        working-directory: packages/tools/levit_devtools_extension
+        run: |
+          dart run devtools_extensions build_and_copy --source=. --dest="$RUNNER_TEMP/levit-devtools"
+          test -s "$RUNNER_TEMP/levit-devtools/build/main.dart.js"
+
+  lint-plugin:
+    name: levit_lints (Dart ${{ matrix.sdk }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sdk: ['3.10.0', stable]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      - name: Analyze and test the rules
+        working-directory: packages/tools/levit_lints
+        run: |
+          dart pub get
+          dart analyze --fatal-infos
+          dart test
+      - name: Load the plugin in a consuming package
+        run: |
+          (cd packages/kits/levit && dart pub get)
+          dart run scripts/check_lint_plugin.dart
+
+  checks:
+    name: Checks (Dart, Flutter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Levit
+        uses: ./.github/actions/setup-levit
+        with:
+          pub-cache-suffix: ${{ hashFiles('**/pubspec.yaml', 'melos.yaml') }}
+
+      - name: Check Formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Check semantic test names
+        run: dart run scripts/check_test_names.dart
+
+      - name: Run workspace tests
+        run: dart test
+
+      - name: Verify native lint plugin
+        run: dart run scripts/check_lint_plugin.dart
+
+      - name: Analyze packages
+        run: dart run melos run analyze --no-select
+
+      - name: Validate DartDoc
+        run: dart run scripts/check_docs.dart
+
+      - name: Run pure Dart tests
+        run: dart run melos run test --no-select
+
+      - name: Run Flutter tests
+        run: dart run melos run test:flutter --no-select
+
+      - name: Browser build contracts
+        run: dart run melos run test:browser

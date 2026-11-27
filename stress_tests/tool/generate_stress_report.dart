@@ -1,0 +1,236 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+Future<void> main() async {
+  print('Running internal stress tests and generating report...');
+
+  final process = await Process.start('flutter', [
+    'test',
+    'lib/levit_reactive',
+    'lib/levit_scope',
+    'lib/levit_flutter',
+    '-r',
+    'json',
+  ]);
+
+  final metrics = <Map<String, String>>[];
+  final tests = <int, Map<String, dynamic>>{};
+  final suites = <int, String>{};
+  final descriptions = <int, String>{};
+
+  bool? testsSucceeded;
+  var reportedTestError = false;
+  Timer? watchdog;
+  void resetWatchdog() {
+    watchdog?.cancel();
+    watchdog = Timer(const Duration(seconds: 30), () {
+      print('[Watchdog] No output for 30s. Killing process...');
+      process.kill();
+    });
+  }
+
+  // Transform stdout to lines
+  process.stdout.transform(utf8.decoder).transform(const LineSplitter()).listen(
+    (line) {
+      resetWatchdog();
+      if (line.trim().isEmpty) return;
+      try {
+        final event = jsonDecode(line);
+        final type = event['type'];
+
+        if (type == 'suite') {
+          final suite = event['suite'];
+          String path = suite['path'] as String;
+          if (path.contains('lib/')) {
+            path = 'lib/${path.split('lib/').last}';
+          }
+          suites[suite['id']] = path;
+        } else if (type == 'testStart') {
+          final test = event['test'];
+          tests[test['id']] = test;
+        } else if (type == 'print') {
+          final int? testId = event['testID'];
+          final message = event['message'].toString();
+
+          if (message.startsWith('[Description]')) {
+            if (testId != null) {
+              descriptions[testId] =
+                  message.replaceFirst('[Description]', '').trim();
+            }
+          } else if (_isMetricMessage(message)) {
+            final test = tests[testId];
+            final testName = test?['name'] ?? 'Setup/Global';
+            final suiteId = test?['suiteID'];
+            final suitePath = suites[suiteId] ?? 'Unknown';
+
+            metrics.add({
+              'test': testName,
+              'message': message,
+              'suite': suitePath,
+              'description': testId != null ? (descriptions[testId] ?? '') : '',
+            });
+            print('[Metric] [$suitePath] $message');
+          }
+        } else if (type == 'error') {
+          reportedTestError = true;
+          print(
+            'Test runner error [${tests[event['testID']]?['name']}]: ${event['error']}',
+          );
+          print(event['stackTrace'] ?? '');
+        } else if (type == 'done') {
+          // Let Flutter drain its reporter streams before exiting. Killing it
+          // here can interrupt reporter cleanup even after successful tests.
+          testsSucceeded = event['success'] as bool?;
+        }
+      } catch (_) {
+        // Ignore non-json lines or parse errors
+      }
+    },
+  );
+
+  process.stdin.close();
+  process.stderr.transform(utf8.decoder).listen(stderr.write);
+
+  final exitCode = await process.exitCode;
+  watchdog?.cancel();
+
+  if (exitCode != 0 || testsSucceeded != true || reportedTestError) {
+    print(
+      'Tests failed: exit=$exitCode, success=$testsSucceeded, '
+      'reportedError=$reportedTestError. Report was not regenerated.',
+    );
+    exit(exitCode == 0 ? 1 : exitCode);
+  }
+  print('Tests finished successfully.');
+
+  await _generateMarkdownReport(metrics);
+}
+
+Future<void> _generateMarkdownReport(List<Map<String, String>> metrics) async {
+  final reactiveMetrics =
+      metrics.where((m) => m['suite']!.contains('levit_reactive')).toList();
+  final diMetrics =
+      metrics.where((m) => m['suite']!.contains('levit_scope')).toList();
+  final flutterMetrics =
+      metrics.where((m) => m['suite']!.contains('levit_flutter')).toList();
+
+  final reportDir = Directory('../reports');
+  if (!reportDir.existsSync()) {
+    reportDir.createSync(recursive: true);
+  }
+
+  final stressBuffer = StringBuffer()
+    ..writeln('# Levit Framework Stress Test Report')
+    ..writeln()
+    ..writeln(
+      '> **Generated on:** ${DateTime.now().toIso8601String().split('T')[0]}',
+    )
+    ..writeln()
+    ..writeln('## Performance Summary')
+    ..writeln()
+    ..writeln(
+      'All rows below are emitted by passing stress tests. The summary only records measured actions and omits diagnostic prints such as final status dumps.',
+    )
+    ..writeln();
+  _writeMetricsTable(stressBuffer, 'Levit Reactive (Core)', reactiveMetrics);
+  stressBuffer.writeln();
+  _writeMetricsTable(
+    stressBuffer,
+    'Levit DI (Dependency Injection)',
+    diMetrics,
+  );
+  stressBuffer.writeln();
+  _writeMetricsTable(
+    stressBuffer,
+    'Levit Flutter (UI Binding)',
+    flutterMetrics,
+  );
+
+  stressBuffer
+    ..writeln()
+    ..writeln('## Raw Execution Logs')
+    ..writeln('<details>')
+    ..writeln('<summary>Click to view full logs</summary>')
+    ..writeln()
+    ..writeln('```text');
+  for (final item in metrics) {
+    stressBuffer.writeln(
+      '[${item['suite']}] [${item['test']}] ${item['message']}',
+    );
+  }
+  stressBuffer
+    ..writeln('```')
+    ..writeln('</details>');
+
+  final stressFile = File('../reports/stress_test_report.md');
+  await stressFile.writeAsString(stressBuffer.toString());
+  print('Stress Test Report generated: ${stressFile.absolute.path}');
+}
+
+bool _isMetricMessage(String message) {
+  if (message.startsWith('Final status:')) return false;
+  if (message.startsWith('Callback invocations:')) return false;
+  if (message.startsWith('Recompute notifications:')) return false;
+  if (message.startsWith('Compute notifications:')) return false;
+  if (message.startsWith('Total onChange calls')) return false;
+
+  if (message.startsWith('Completed') || message.startsWith('Captured')) {
+    return true;
+  }
+  if (message.contains('time:')) return true;
+  return RegExp(r'\b(?:in|took) \d+(?:ms|us)\b').hasMatch(message);
+}
+
+void _writeMetricsTable(
+  StringBuffer buffer,
+  String title,
+  List<Map<String, String>> metrics,
+) {
+  buffer
+    ..writeln('### $title')
+    ..writeln();
+  if (metrics.isEmpty) {
+    buffer.writeln('_No metrics captured for this category._');
+    return;
+  }
+
+  buffer
+    ..writeln('| Scenario | Description | Measured Action | Result |')
+    ..writeln('| :--- | :--- | :--- | :--- |');
+
+  final timeRegExp = RegExp(r'(\d+(?:ms|us))');
+
+  for (final item in metrics) {
+    final testName = item['test']!;
+    final message = item['message']!;
+
+    String result = '-';
+    String action = message;
+
+    final timeMatch = timeRegExp.firstMatch(message);
+    if (timeMatch != null) {
+      result = timeMatch.group(1)!;
+    } else if (message.startsWith('Completed') ||
+        message.startsWith('Captured')) {
+      final parts = message.split(' ');
+      if (parts.length > 1) result = parts[1];
+    }
+
+    if (message.contains(' took ')) {
+      action = message.split(' took ')[0].trim();
+    } else if (message.contains(' in ')) {
+      action = message.split(' in ')[0].trim();
+    } else if (message.contains(':')) {
+      final parts = message.split(':');
+      if (parts.length > 1) action = parts[0].trim();
+    }
+
+    final displayTestName = testName.replaceAll('Stress Test: ', '');
+    final description = item['description'] ?? '';
+
+    buffer.writeln(
+      '| $displayTestName | $description | $action | **$result** |',
+    );
+  }
+}

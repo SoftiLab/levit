@@ -1,0 +1,83 @@
+## 0.1.0
+
+- **Breaking:** Requires Dart 3.2+.
+- **Breaking:** Remove reflective disposal method-name guessing from `own(...)`; pass explicit `dispose:` callbacks for third-party resources while keeping typed adapters for built-in reactives, subscriptions, timers, sinks, Levit disposables, and registered platform adapters (`LevitResourceDisposerSpi`).
+- **Breaking:** Captured async controller and store initializers throw `StateError` if they attempt to dispose their own owner or containing scope.
+- Keep reactives created by nested dependency builders and initializers attached to their own registration during disposal and failed construction.
+- Add `computed(...)` and `asyncComputed(...)` ownership helpers on `LevitController` and `LevitRef` plus `Levit.isAutoLinkingEnabled`.
+- Support asynchronous callbacks in `LevitRef.onDispose`, typed `LevitRef.findStore` / `findAsyncStore`, and `store.overrideWith(...)`.
+- Add `package:levit_dart_core/levit_testing.dart` with `LevitTestScope` for isolated override testing, tracked async work, `settle()`, and awaited teardown.
+- Updated internal package constraints to `^0.1.0`.
+
+## 0.0.12
+
+- Add `onBeforeClose` for awaited preparation before LIFO resource disposal.
+- Add explicit `localOnly` store lookups while preserving inherited recipes by default.
+- Updated internal runtime constraints to `^0.0.12`.
+
+## 0.0.11
+
+- Add reusable `LevitResourceOwner` and `LevitResourceOwnership` lifecycle
+  contracts with `own`, `autoDispose`, `disposed`, and idempotent awaited
+  cleanup.
+- Extend auto-linking to every returned `LevitResourceOwner`, not only
+  `LevitController`.
+- Apply resource ownership consistently to controllers and stores.
+- Expose `bindExisting` through `Levit`, `LevitRef`, and store references.
+- Make `Levit.delete`, `Levit.reset`, and `Levit.runInScope` await deterministic
+  scope teardown.
+- Updated internal package constraints to `^0.0.11`.
+
+## 0.0.10
+- `LevitRef.scope` now throws a clear `StateError` when accessed before the store is resolved in a scope (replaces a null-check crash).
+- Coordinated release version bump.
+- Updated internal package constraints to `^0.0.10`.
+
+## 0.0.9
+- Clarified `permanent` on `put` / `lazyPut` / `lazyPutAsync` vs scope `dispose(force)`.
+- Documented `autoDispose(LxWorker(...))` as the preferred controller reload recipe.
+- Coordinated release version bump.
+- Updated internal package constraints to `^0.0.9`.
+
+## 0.0.8
+- Hardened controller cleanup handling for known disposable types and centralized fallback cleanup paths.
+- Improved auto-linking diagnostics for missing capture-zone state.
+- Coordinated release version bump.
+- Updated internal package constraints to `^0.0.8`.
+
+## 0.0.7
+- Bumped version to 0.0.7
+
+## 0.0.6
+
+### Breaking Changes
+- **REMOVED** `LevitState`. Replaced with `LevitStore`.
+  - API remains largely similar but class name and semantics have shifted to "Store".
+
+### New Features
+- **Enhanced LevitRef**:
+  - Added `ref.put()`, `ref.lazyPut()`, and `ref.lazyPutAsync()` allowing full DI registration capabilities directly from within a store/controller definition.
+
+## 0.0.5
+- Production-ready documentation (Effective Dart compliance)
+- Added `topics` to pubspec for improved discoverability
+- Performance and stability improvements
+
+## 0.0.4
+
+- Optimized `Zone.current` lookups for auto-linking (fast-path when no capture is active).
+- Integrated with unified `LevitReactiveMiddleware` system.
+- Renamed `LevitScopeMiddleware.onInit` to `onDependencyInit`.
+- Improved controller lifecycle management and async initialization.
+
+## 0.0.3
+
+- Linting fixes and dependencies update.
+
+## 0.0.2
+
+- Added example project.
+
+## 0.0.1
+
+- Initial release.

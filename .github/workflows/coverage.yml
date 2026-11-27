@@ -1,0 +1,44 @@
+name: Coverage
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    name: ${{ matrix.package.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { name: "levit_reactive", path: "packages/core/levit_reactive" }
+          - { name: "levit_scope", path: "packages/core/levit_scope" }
+          - { name: "levit_dart_core", path: "packages/core/levit_dart_core" }
+          - { name: "levit_flutter_core", path: "packages/core/levit_flutter_core" }
+          - { name: "levit_monitor", path: "packages/core/levit_monitor" }
+          - { name: "levit", path: "packages/kits/levit" }
+          - { name: "levit_dart", path: "packages/kits/levit_dart" }
+          - { name: "levit_flutter", path: "packages/kits/levit_flutter" }
+          - { name: "levit_lints", path: "packages/tools/levit_lints" }
+          - { name: "levit_mcp", path: "packages/tools/levit_mcp" }
+          - { name: "levit_devtools", path: "packages/tools/levit_devtools" }
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Levit
+        uses: ./.github/actions/setup-levit
+        with:
+          pub-cache-suffix: ${{ hashFiles('**/pubspec.yaml', 'melos.yaml') }}
+
+      - name: Run tests with coverage
+        run: dart run scripts/check_coverage.dart --quiet --fail-under=100 --timeout=600 --only=${{ matrix.package.name }} packages
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ matrix.package.path }}/coverage/lcov.info
+          flags: ${{ matrix.package.name }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

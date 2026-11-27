@@ -1,0 +1,367 @@
+part of '../levit_flutter_core.dart';
+
+T? _resolveStore<T>(BuildContext context, LevitStore<T> store, bool localOnly) {
+  try {
+    return store.findIn(
+      LScope.of(context) ?? Ls.currentScope,
+      localOnly: localOnly,
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<T> _resolveAsyncStore<T>(
+  BuildContext context,
+  LevitAsyncStore<T> store,
+  bool localOnly,
+) =>
+    store.findIn(LScope.of(context) ?? Ls.currentScope, localOnly: localOnly);
+
+/// A widget that consumes a dependency of type [T] from the nearest scope and builds UI.
+///
+/// [LView] combines resolving an existing dependency (such as a
+/// [LevitController], service, or store value) with building a reactive widget
+/// tree. When [autoWatch] is `true` (the default), [buildView] / [builder] run
+/// inside an [LWatch], so reactive reads rebuild the view automatically.
+///
+/// With [autoWatch] enabled, read reactives directly in [buildView] / [builder].
+/// Do **not** wrap the entire return value in another [LWatch] — that creates a
+/// redundant outer watch. Use nested [LWatch] only for partial rebuilds, or set
+/// [autoWatch] to `false` when you manage watching yourself.
+///
+/// Usage:
+/// 1. **Subclass:**
+///    ```dart
+///    class HomePage extends LView<HomeController> {
+///      @override
+///      Widget buildView(BuildContext context, HomeController controller) {
+///        return Text(controller.title());
+///      }
+///    }
+///    ```
+/// 2. **Builder:**
+///    ```dart
+///    LView<HomeController>(
+///      builder: (context, controller) => Text(controller.title()),
+///    );
+///    ```
+///
+/// {@category Flutter Widgets & Interop}
+class LView<T> extends StatefulWidget {
+  /// Resolves the dependency from the context.
+  ///
+  /// Defaults to `context.levit.findOrNull<T>()` when omitted. Returns `null`
+  /// when the dependency is not registered.
+  final T? Function(BuildContext context)? resolver;
+
+  /// Builds the widget tree using the resolved dependency instance.
+  final Widget Function(BuildContext context, T controller)? builder;
+
+  /// Fallback widget when the dependency cannot be resolved.
+  ///
+  /// If resolution returns `null` and no [orElse] is provided,
+  /// a [StateError] is thrown.
+  final Widget Function(BuildContext context)? orElse;
+
+  /// Whether to wrap [buildView] / [builder] in an [LWatch].
+  ///
+  /// Defaults to `true`. When `true`, read reactives directly in the build
+  /// method; do not wrap the whole tree in another [LWatch].
+  final bool autoWatch;
+
+  /// Explicit keys for re-resolution. Resolver identity alone does not trigger
+  /// another lookup; changing these keys or the bound scope does.
+  final List<Object?>? args;
+
+  /// Creates a consuming view with an optional [resolver] and [builder].
+  const LView({
+    super.key,
+    this.resolver,
+    this.builder,
+    this.orElse,
+    this.autoWatch = true,
+    this.args,
+  });
+
+  /// Consumes a store, inheriting ancestor state unless [localOnly] is `true`.
+  factory LView.store(
+    LevitStore<T> state, {
+    Key? key,
+    bool localOnly = false,
+    required Widget Function(BuildContext context, T controller) builder,
+    Widget Function(BuildContext context)? orElse,
+    bool autoWatch = true,
+    List<Object?>? args,
+  }) {
+    return LView<T>(
+      key: key,
+      resolver: (context) => _resolveStore(context, state, localOnly),
+      builder: builder,
+      orElse: orElse,
+      autoWatch: autoWatch,
+      args: args,
+    );
+  }
+
+  /// Builds the view content for the given [controller].
+  ///
+  /// Subclasses can override this instead of providing a [builder].
+  @protected
+  Widget buildView(BuildContext context, T controller) {
+    final b = builder;
+    if (b != null) {
+      return b(context, controller);
+    }
+    throw UnimplementedError(
+      'LView: You must either provide a builder or override buildView in subclasses.',
+    );
+  }
+
+  @override
+  State<LView<T>> createState() => _LViewState<T>();
+}
+
+class _LViewState<T> extends State<LView<T>> {
+  T? controller;
+  LevitScope? _boundScope;
+
+  @override
+  void initState() {
+    super.initState();
+    LevitFlutter.ensureInitialized();
+    // Resolver is memoized per widget lifecycle to avoid rebuild-driven side effects.
+    controller = _resolveController();
+    _boundScope = LScope.of(context);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextScope = LScope.of(context, listen: true);
+    if (!identical(_boundScope, nextScope)) {
+      _boundScope = nextScope;
+      controller = _resolveController();
+    }
+  }
+
+  @override
+  void didUpdateWidget(LView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final shouldUpdate = (widget.args != null || oldWidget.args != null)
+        ? !_argsMatch(widget.args, oldWidget.args)
+        : false;
+
+    if (shouldUpdate) {
+      controller = _resolveController();
+    }
+  }
+
+  T? _resolveController() {
+    final resolver = widget.resolver;
+    return resolver != null ? resolver(context) : context.levit.findOrNull<T>();
+  }
+
+  bool _argsMatch(List<Object?>? a, List<Object?>? b) {
+    if (a == null || b == null) return identical(a, b);
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = controller;
+    if (c == null) {
+      final fallback = widget.orElse;
+      if (fallback != null) return fallback(context);
+      throw StateError(
+        'LView<$T>: controller not found and no orElse provided.',
+      );
+    }
+    if (widget.autoWatch) {
+      return LWatch(() => widget.buildView(context, c));
+    }
+    return LScope.runBridged(context, () => widget.buildView(context, c));
+  }
+}
+
+/// A specialized view for asynchronous dependencies.
+///
+/// [LAsyncView] resolves a [Future] dependency (defaulting to
+/// `context.levit.findAsync<T>()`) and renders [loading], [error], or
+/// [builder] / [buildView] (success) states. Resolution is memoized per bound
+/// scope; use [args] to re-trigger resolution when inputs change.
+///
+/// When [autoWatch] is `true` (default), read reactives directly in
+/// [buildView] / [builder] without wrapping the entire return in another
+/// [LWatch].
+///
+/// ```dart
+/// LAsyncView<CatalogController>(
+///   loading: (_) => const CircularProgressIndicator(),
+///   error: (_, err) => Text('Failed: $err'),
+///   builder: (context, controller) => CatalogList(controller.items),
+/// );
+/// ```
+///
+/// {@category Flutter Widgets & Interop}
+class LAsyncView<T> extends StatefulWidget {
+  /// Resolves the dependency asynchronously from the context.
+  ///
+  /// Defaults to `context.levit.findAsync<T>()` when omitted.
+  final Future<T> Function(BuildContext context)? resolver;
+
+  /// Builds the widget tree using the resolved dependency instance.
+  final Widget Function(BuildContext context, T controller)? builder;
+
+  /// Whether to wrap [buildView] / [builder] in an [LWatch]. Defaults to `true`.
+  final bool autoWatch;
+
+  /// Builder for the loading state. Defaults to `SizedBox.shrink()`.
+  final Widget Function(BuildContext context)? loading;
+
+  /// Builder for the error state. Defaults to `Center(child: Text('Error: $err'))`.
+  final Widget Function(BuildContext context, Object error)? error;
+
+  /// Explicit keys for re-resolution. Resolver identity alone does not trigger
+  /// another lookup; changing these keys or the bound scope does.
+  final List<Object?>? args;
+
+  /// Creates an async view.
+  const LAsyncView({
+    super.key,
+    this.resolver,
+    this.builder,
+    this.autoWatch = true,
+    this.loading,
+    this.error,
+    this.args,
+  });
+
+  /// Consumes an async store, inheriting ancestor state unless [localOnly] is `true`.
+  factory LAsyncView.store(
+    LevitAsyncStore<T> store, {
+    Key? key,
+    bool localOnly = false,
+    required Widget Function(BuildContext context, T controller) builder,
+    bool autoWatch = true,
+    Widget Function(BuildContext context)? loading,
+    Widget Function(BuildContext context, Object error)? error,
+    List<Object?>? args,
+  }) =>
+      LAsyncView<T>(
+        key: key,
+        resolver: (context) => _resolveAsyncStore(context, store, localOnly),
+        builder: builder,
+        autoWatch: autoWatch,
+        loading: loading,
+        error: error,
+        args: args,
+      );
+
+  /// Builds the view content for the given [controller].
+  @protected
+  Widget buildView(BuildContext context, T controller) {
+    if (builder != null) {
+      return builder!(context, controller);
+    }
+    throw UnimplementedError(
+      'LView: You must either provide a builder or override buildView in subclasses.',
+    );
+  }
+
+  /// Builds the loading placeholder while async resolution is pending.
+  ///
+  /// Subclasses may override this instead of passing [loading]. Defaults to
+  /// `SizedBox.shrink()`.
+  @protected
+  Widget buildLoading(BuildContext context) =>
+      loading?.call(context) ?? const SizedBox.shrink();
+
+  /// Builds the error widget when async resolution fails with [err].
+  ///
+  /// Subclasses may override this instead of passing [error]. Defaults to
+  /// `Center(child: Text('Error: $err'))`.
+  @protected
+  Widget buildError(BuildContext context, Object err) =>
+      error?.call(context, err) ?? Center(child: Text('Error: $err'));
+
+  @override
+  State<LAsyncView<T>> createState() => _LAsyncViewState<T>();
+}
+
+class _LAsyncViewState<T> extends State<LAsyncView<T>> {
+  late Future<T> future;
+  LevitScope? _boundScope;
+
+  @override
+  void initState() {
+    super.initState();
+    LevitFlutter.ensureInitialized();
+    // Future is memoized per lifecycle to avoid repeated asynchronous resolution.
+    future = _resolveFuture();
+    _boundScope = LScope.of(context);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final nextScope = LScope.of(context, listen: true);
+    if (!identical(_boundScope, nextScope)) {
+      _boundScope = nextScope;
+      future = _resolveFuture();
+    }
+  }
+
+  @override
+  void didUpdateWidget(LAsyncView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!_argsMatch(widget.args, oldWidget.args)) {
+      future = _resolveFuture();
+    }
+  }
+
+  bool _argsMatch(List<Object?>? a, List<Object?>? b) {
+    if (a == null || b == null) return identical(a, b);
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  Future<T> _resolveFuture() {
+    return widget.resolver?.call(context) ?? context.levit.findAsync<T>();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<T>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return widget.buildLoading(context);
+        }
+
+        if (snapshot.hasError) {
+          return widget.buildError(context, snapshot.error!);
+        }
+
+        final controller = snapshot.data as T;
+        if (widget.autoWatch) {
+          return LWatch(() => widget.buildView(context, controller));
+        }
+
+        return LScope.runBridged(
+          context,
+          () => widget.buildView(context, controller),
+        );
+      },
+    );
+  }
+}

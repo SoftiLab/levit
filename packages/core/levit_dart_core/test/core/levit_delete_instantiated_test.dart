@@ -1,0 +1,21 @@
+import 'package:levit_dart_core/levit_dart_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('Levit Delete and Instantiated', () {
+    tearDown(() async {
+      await Ls.reset(force: true);
+    });
+
+    test('Levit.delete and Levit.isInstantiated', () async {
+      Levit.lazyPut(() => 'hello', tag: 'my-tag');
+
+      expect(Levit.isInstantiated<String>(tag: 'my-tag'), isFalse);
+
+      Levit.find<String>(tag: 'my-tag');
+
+      expect(Levit.isInstantiated<String>(tag: 'my-tag'), isTrue);
+      expect(await Levit.delete<String>(tag: 'my-tag'), isTrue);
+    });
+  });
+}

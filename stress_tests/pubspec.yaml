@@ -1,0 +1,28 @@
+name: levit_stress_tests
+description: Pure Dart reactive state management primitives. The engine of the Levit framework.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.2.0
+  flutter: '>=3.16.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter 
+  levit_reactive:
+    path: ../packages/core/levit_reactive
+  levit_scope:
+    path: ../packages/core/levit_scope
+  levit_flutter_core:
+    path: ../packages/core/levit_flutter_core
+  levit_dart_core:
+    path: ../packages/core/levit_dart_core
+    
+  test: ^1.24.0
+  rxdart:
+dev_dependencies:
+  lints: '>=4.0.0 <7.0.0'
+

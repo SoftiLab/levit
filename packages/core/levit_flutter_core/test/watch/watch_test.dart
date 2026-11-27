@@ -1,0 +1,277 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:levit_flutter_core/levit_flutter_core.dart';
+
+void main() {
+  setUp(() async {
+    await Levit.reset(force: true);
+  });
+
+  group('LWatch', () {
+    testWidgets('rebuilds when Lx value changes', (tester) async {
+      final count = 0.lx;
+
+      await tester.pumpWidget(
+        MaterialApp(home: LWatch(() => Text('Count: ${count.value}'))),
+      );
+
+      expect(find.text('Count: 0'), findsOneWidget);
+
+      count.value = 1;
+      await tester.pump();
+
+      expect(find.text('Count: 1'), findsOneWidget);
+    });
+
+    testWidgets('handles multiple Lx values', (tester) async {
+      final a = 1.lx;
+      final b = 2.lx;
+
+      await tester.pumpWidget(
+        MaterialApp(home: LWatch(() => Text('Sum: ${a.value + b.value}'))),
+      );
+
+      expect(find.text('Sum: 3'), findsOneWidget);
+
+      a.value = 10;
+      await tester.pumpAndSettle();
+      expect(find.text('Sum: 12'), findsOneWidget);
+
+      b.value = 20;
+      await tester.pumpAndSettle();
+      expect(find.text('Sum: 30'), findsOneWidget);
+    });
+
+    testWidgets('disposes subscriptions on unmount', (tester) async {
+      final count = 0.lx;
+      final showWatch = true.lx;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LWatch(
+            () => showWatch.value
+                ? LWatch(() => Text('Count: ${count.value}'))
+                : const Text('Hidden'),
+          ),
+        ),
+      );
+
+      expect(find.text('Count: 0'), findsOneWidget);
+
+      showWatch.value = false;
+      await tester.pump();
+
+      expect(find.text('Hidden'), findsOneWidget);
+
+      count.value = 100;
+      await tester.pump();
+
+      expect(find.text('Hidden'), findsOneWidget);
+    });
+
+    testWidgets('builds correctly with debugLabel set', (tester) async {
+      final count = 0.lx;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LWatch(
+            () => Text('Count: ${count.value}'),
+            debugLabel: 'test-counter',
+          ),
+        ),
+      );
+
+      expect(find.text('Count: 0'), findsOneWidget);
+
+      count.value = 1;
+      await tester.pump();
+
+      expect(find.text('Count: 1'), findsOneWidget);
+    });
+
+    testWidgets('dedupes duplicate LxStream emits when reading lastValue', (
+      tester,
+    ) async {
+      final controller = StreamController<int>.broadcast();
+      final stream = LxStream<int>(controller.stream);
+      var buildCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: LWatch(() {
+            buildCount++;
+            final last = stream.value.lastValue;
+            return Text('Last: ${last ?? -1}');
+          }),
+        ),
+      );
+
+      expect(buildCount, 1);
+      expect(find.text('Last: -1'), findsOneWidget);
+
+      controller.add(1);
+      await tester.pump();
+      await tester.pump();
+      expect(buildCount, 2);
+      expect(find.text('Last: 1'), findsOneWidget);
+
+      controller.add(1); // Duplicate payload should still rebuild.
+      await tester.pump();
+      await tester.pump();
+      expect(buildCount, 2);
+      expect(find.text('Last: 1'), findsOneWidget);
+
+      await controller.close();
+    });
+
+    testWidgets(
+      'stabilizes logical dependency when getter recreates named reactive',
+      (tester) async {
+        final source = _UnstableNamedStreamSource();
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: LWatch(() {
+              final last = source.mediaLibrary.value.lastValue;
+              return Text('Last: ${last ?? -1}');
+            }),
+          ),
+        );
+
+        expect(find.text('Last: -1'), findsOneWidget);
+
+        source.add(1);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Last: 1'), findsOneWidget);
+
+        source.add(2);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+        expect(find.text('Last: 2'), findsOneWidget);
+
+        await source.close();
+      },
+    );
+  });
+
+  group('LWatchVar', () {
+    testWidgets('resubscribes when Lx changes', (tester) async {
+      final value1 = 'First'.lx;
+      final value2 = 'Second'.lx;
+      final useFirst = ValueNotifier(true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<bool>(
+            valueListenable: useFirst,
+            builder: (_, first, __) => LBuilder<String>(
+              first ? value1 : value2,
+              (value) => Text('Value: ${value}'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Value: First'), findsOneWidget);
+
+      useFirst.value = false;
+      await tester.pumpAndSettle();
+
+      expect(find.text('Value: Second'), findsOneWidget);
+
+      value2.value = 'Updated';
+      await tester.pumpAndSettle();
+
+      expect(find.text('Value: Updated'), findsOneWidget);
+    });
+  });
+
+  group('LWatch dependency tracking', () {
+    testWidgets('removes unused dependencies', (tester) async {
+      final rxA = 0.lx;
+      final rxB = 0.lx;
+      bool useB = true;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: LWatch(() {
+            final a = rxA.value;
+            if (useB) {
+              final b = rxB.value;
+              return Text('$a-$b');
+            }
+            return Text('$a');
+          }),
+        ),
+      );
+
+      expect(find.text('0-0'), findsOneWidget);
+
+      rxB.value = 1;
+      await tester.pump();
+      expect(find.text('0-1'), findsOneWidget);
+
+      useB = false;
+      rxA.value = 1;
+      await tester.pump();
+      expect(find.text('1'), findsOneWidget);
+
+      rxB.value = 2;
+      await tester.pump();
+      expect(find.text('1'), findsOneWidget);
+    });
+
+    testWidgets('handles ambiguous logical keys in multi dependency mode', (
+      tester,
+    ) async {
+      final left = 1.lx
+        ..ownerId = 'shared-owner'
+        ..name = 'shared-name';
+      final right = 2.lx
+        ..ownerId = 'shared-owner'
+        ..name = 'shared-name';
+
+      Widget buildStage() {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: LWatch(() {
+            final sum = left.value + right.value;
+            return Text('sum:$sum');
+          }),
+        );
+      }
+
+      await tester.pumpWidget(buildStage());
+      expect(find.text('sum:3'), findsOneWidget);
+
+      // Rebuild the same element so resolveReactiveRead uses the logical index
+      // built from the previous multi-dependency subscription set.
+      await tester.pumpWidget(buildStage());
+      expect(find.text('sum:3'), findsOneWidget);
+    });
+  });
+}
+
+class _UnstableNamedStreamSource {
+  static const _ownerId = 'test-owner';
+  static const _name = 'mediaLibrary';
+
+  final StreamController<int> _controller = StreamController<int>.broadcast();
+
+  LxStream<int> get mediaLibrary {
+    final reactive = LxStream<int>(_controller.stream);
+    reactive.ownerId = _ownerId;
+    reactive.name = _name;
+    return reactive;
+  }
+
+  void add(int value) => _controller.add(value);
+
+  Future<void> close() => _controller.close();
+}

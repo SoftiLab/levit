@@ -1,0 +1,130 @@
+name: levit
+repository: https://github.com/softilab/levit
+
+packages:
+  - benchmarks
+  - examples/**
+  - packages/**
+  - stress_tests
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  ci:
+    run: >-
+      dart run scripts/check_test_names.dart &&
+      dart test &&
+      dart run melos run test:lints &&
+      dart run melos run analyze --no-select &&
+      dart run melos run doc:check &&
+      dart run melos run test --no-select &&
+      dart run melos run test:flutter --no-select
+    description: Run analysis and test checks
+
+  analyze:
+    run: dart analyze --fatal-infos
+    description: Run static analysis
+    exec:
+      concurrency: 6
+
+  test:
+    run: dart test
+    description: Run pure Dart tests
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: test
+      noDependsOn: flutter
+      ignore:
+        - levit_stress_tests
+
+  test:flutter:
+    run: flutter test
+    description: Run Flutter tests
+    exec:
+      concurrency: 1
+    packageFilters:
+      dirExists: test
+      dependsOn: flutter
+      ignore:
+        - levit_stress_tests
+        - benchmarks
+
+  test:browser:
+    run: >-
+      mkdir -p build/browser_contracts &&
+      (cd packages/kits/levit && dart compile js tool/browser_contract.dart -o ../../../build/browser_contracts/levit.js) &&
+      (cd examples/async_catalog && flutter build web --release --no-web-resources-cdn) &&
+      (cd examples/task_board && flutter build web --release --no-web-resources-cdn -t lib/save_upload.dart) &&
+      (cd examples/scope_playground && flutter build web --release --no-web-resources-cdn -t lib/session_replacement.dart)
+    description: Compile browser runtime contracts and web examples
+
+  test:lints:
+    run: dart run scripts/check_lint_plugin.dart
+    description: Verify native analyzer plugin in a real local consumer
+
+  build:devtools:
+    run: cd packages/tools/levit_devtools_extension && dart run devtools_extensions build_and_copy --source=. --dest=../levit_devtools/extension/devtools
+    description: Build and copy the Flutter DevTools extension web bundle into levit_devtools
+
+  coverage:
+    run: dart run scripts/check_coverage.dart --fail-under=100
+    description: Run coverage checks
+
+  publish:dry-run:
+    run: dart run melos publish --dry-run
+    description: Validate unpublished publishable packages without publishing
+
+  stress:
+    run: dart run tool/generate_stress_report.dart
+    description: Run stress tests and regenerate stress report
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: levit_stress_tests
+
+  benchmarks:
+    run: flutter test
+    description: Run benchmark harness tests
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: benchmarks
+
+  report:benchmarks:
+    run: flutter test tool/generate_benchmark_report.dart --reporter=compact
+    description: Regenerate benchmark report
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: benchmarks
+
+  report:benchmarks:release:
+    run: dart run tool/generate_release_benchmark_report.dart
+    description: Regenerate native macOS AOT release benchmark report
+    exec:
+      concurrency: 1
+    packageFilters:
+      scope: benchmarks
+
+  format:
+    run: dart format .
+    description: Format all Dart code
+
+  # Validate DartDoc generation and link integrity across core, kit, and tool packages
+  doc:check:
+    run: dart run scripts/check_docs.dart
+    description: Validate DartDoc generation and links across core, kit, and tool packages
+
+  # Generate docs for core, kit, and tool packages
+  doc:gen:
+    run: dart doc --validate-links --output=MELOS_ROOT_PATH/.temp-docs/MELOS_PACKAGE_NAME .
+    exec:
+      concurrency: 1
+      failFast: true
+    packageFilters:
+      noPrivate: true
+      fileExists: dartdoc_options.yaml
+sdkPath: .fvm/flutter_sdk
