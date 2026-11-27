@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:levit_flutter/levit_flutter.dart';
-import 'package:levit_monitor/spi.dart';
 
 import '../client/devtools_client.dart';
 import '../controller/inspector_controller.dart';
@@ -11,145 +10,57 @@ import 'scope_tree_view.dart';
 import 'task_tree_view.dart';
 import 'timeline_view.dart';
 
-/// Main Flutter DevTools tab for inspecting a live Levit application.
-class LevitDevToolsScreen extends StatelessWidget {
-  final LevitDevToolsClient client;
+/// Main Flutter DevTools screen for inspecting a live Levit application.
+///
+/// Owns a dedicated [LScope] hosting [LevitInspectorController], allowing all
+/// child views to resolve the controller via [LView] and `context.levit.find`.
+class LevitDevToolsScreen extends LScopedView<LevitInspectorController> {
+  /// Optional pre-constructed transport client.
+  final LevitDevToolsClient? client;
+
+  /// Optional lazy transport client factory invoked once when configuring the scope.
+  final LevitDevToolsClient Function()? createClient;
+
+  /// Whether [LevitInspectorController] should dispose the client when closed.
   final bool ownsClient;
 
+  /// Creates the Levit DevTools inspector screen.
   const LevitDevToolsScreen({
     super.key,
-    required this.client,
+    this.client,
+    this.createClient,
     this.ownsClient = false,
-  });
+  })  : assert(client != null || createClient != null),
+        super(autoWatch: false, scopeName: 'levit_devtools');
 
   @override
-  Widget build(BuildContext context) {
-    return LScopedView<LevitInspectorController>.put(
-      () => LevitInspectorController(client, ownsClient: ownsClient),
-      autoWatch: false,
-      builder: (context, controller) => _LevitDevToolsShell(controller),
+  void onConfigureScope(LevitScope scope) {
+    final resolvedClient = client ?? createClient!();
+    scope.put(
+      () => LevitInspectorController(resolvedClient, ownsClient: ownsClient),
     );
   }
-}
-
-class _LevitDevToolsShell extends StatefulWidget {
-  final LevitInspectorController controller;
-
-  const _LevitDevToolsShell(this.controller);
 
   @override
-  State<_LevitDevToolsShell> createState() => _LevitDevToolsShellState();
-}
-
-class _LevitDevToolsShellState extends State<_LevitDevToolsShell>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  late final LxWorker<int> _tabSyncWorker;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging &&
-          widget.controller.activeTabIndex.value != _tabController.index) {
-        widget.controller.activeTabIndex.value = _tabController.index;
-      }
-    });
-    _tabSyncWorker = LxWorker<int>(widget.controller.activeTabIndex, (index) {
-      if (_tabController.index != index) {
-        _tabController.animateTo(index);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabSyncWorker.close();
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = widget.controller;
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
     return Scaffold(
       body: Column(
         children: [
-          _HeaderToolbar(controller: controller),
+          const _HeaderToolbar(),
           const Divider(height: 1),
           Expanded(
             child: LWatch(() {
-              controller.revision();
-              final isAttached = controller.attached();
-              final isLoading = controller.loading();
-              if (!isAttached) {
-                return _UnattachedEmptyState(
-                  loading: isLoading,
-                  error: controller.errorMessage(),
-                  onRetry: controller.refresh,
-                );
+              if (!controller.attached()) {
+                return const _UnattachedEmptyState();
               }
-              final findingsCount = controller.findings.length;
-              return Column(
+              return const Column(
                 children: [
-                  Material(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    child: TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      tabs: [
-                        Tab(
-                          text: 'Scopes (${controller.snapshot.scopes.length})',
-                        ),
-                        Tab(
-                          text:
-                              'Reactives (${controller.snapshot.variables.length})',
-                        ),
-                        Tab(
-                          text:
-                              'Tasks (${controller.snapshot.taskTrees.length})',
-                        ),
-                        Tab(
-                          text:
-                              'Timeline (${controller.snapshot.events.length})',
-                        ),
-                        Tab(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('Diagnostics'),
-                              if (findingsCount > 0) ...[
-                                const SizedBox(width: 6),
-                                _CountBadge(
-                                  count: findingsCount,
-                                  hasError: controller.findings.any(
-                                    (f) =>
-                                        f.severity ==
-                                        LevitDiagnosticSeverity.error,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        ScopeTreeView(controller: controller),
-                        ReactiveGraphView(controller: controller),
-                        TaskTreeView(controller: controller),
-                        TimelineView(controller: controller),
-                        DiagnosticsView(controller: controller),
-                      ],
-                    ),
-                  ),
+                  _InspectorTabBar(),
+                  Divider(height: 1),
+                  Expanded(child: _ActiveInspectorTab()),
                 ],
               );
             }),
@@ -160,43 +71,168 @@ class _LevitDevToolsShellState extends State<_LevitDevToolsShell>
   }
 }
 
-class _HeaderToolbar extends StatelessWidget {
-  final LevitInspectorController controller;
+class _InspectorTabBar extends LView<LevitInspectorController> {
+  const _InspectorTabBar();
 
-  const _HeaderToolbar({required this.controller});
+  @override
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
+    controller.revision();
+    final activeIndex = controller.activeTabIndex();
+    final findings = controller.findings;
+
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _InspectorTabButton(
+                label: 'Scopes (${controller.snapshot.scopes.length})',
+                selected: activeIndex == 0,
+                onTap: () => controller.selectTab(0),
+              ),
+              _InspectorTabButton(
+                label: 'Reactives (${controller.snapshot.variables.length})',
+                selected: activeIndex == 1,
+                onTap: () => controller.selectTab(1),
+              ),
+              _InspectorTabButton(
+                label: 'Tasks (${controller.snapshot.taskTrees.length})',
+                selected: activeIndex == 2,
+                onTap: () => controller.selectTab(2),
+              ),
+              _InspectorTabButton(
+                label: 'Timeline (${controller.snapshot.events.length})',
+                selected: activeIndex == 3,
+                onTap: () => controller.selectTab(3),
+              ),
+              _InspectorTabButton(
+                label: 'Diagnostics',
+                selected: activeIndex == 4,
+                onTap: () => controller.selectTab(4),
+                trailing: findings.isEmpty
+                    ? null
+                    : _CountBadge(
+                        count: findings.length,
+                        hasError: controller.hasErrorFindings,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectorTabButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget? trailing;
+
+  const _InspectorTabButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final foreground =
+        selected ? colorScheme.primary : colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: selected ? colorScheme.primary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 6),
+              trailing!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveInspectorTab extends LView<LevitInspectorController> {
+  const _ActiveInspectorTab();
+
+  @override
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
+    return switch (controller.activeTabIndex()) {
+      0 => const ScopeTreeView(),
+      1 => const ReactiveGraphView(),
+      2 => const TaskTreeView(),
+      3 => const TimelineView(),
+      _ => const DiagnosticsView(),
+    };
+  }
+}
+
+class _HeaderToolbar extends LView<LevitInspectorController> {
+  const _HeaderToolbar() : super(autoWatch: false);
+
+  @override
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: LWatch(() {
-        controller.revision();
-        final isAttached = controller.attached();
-        final isPaused = controller.paused();
-        final queued = controller.pausedCount();
-        final findings = isAttached ? controller.findings : const [];
-
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.hub_outlined,
-                  size: 18,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Levit Inspector',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ],
-            ),
-            Chip(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.hub_outlined,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Levit Inspector',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
+          ),
+          LWatch(() {
+            final isAttached = controller.attached();
+            return Chip(
               avatar: Icon(
                 isAttached ? Icons.check_circle : Icons.link_off,
                 size: 16,
@@ -206,57 +242,72 @@ class _HeaderToolbar extends StatelessWidget {
                 isAttached ? 'Connected (Read-Only)' : 'Not Attached',
               ),
               visualDensity: VisualDensity.compact,
-            ),
-            if (isAttached) ...[
-              OutlinedButton.icon(
-                onPressed: controller.togglePause,
-                icon: Icon(isPaused ? Icons.play_arrow : Icons.pause, size: 16),
-                label: Text(
-                  isPaused
-                      ? 'Resume${queued > 0 ? ' (+$queued)' : ''}'
-                      : 'Pause',
-                ),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.loading() ? null : controller.refresh,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Refresh'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final json = controller.exportRedactedJson();
-                  await Clipboard.setData(ClipboardData(text: json));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Copied redacted snapshot JSON.'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.copy_all, size: 16),
-                label: const Text('Copy JSON'),
-              ),
-              if (findings.isNotEmpty)
-                ActionChip(
-                  avatar: Icon(
-                    Icons.warning_amber_rounded,
+            );
+          }),
+          LWatch(() {
+            if (!controller.attached()) {
+              return const SizedBox.shrink();
+            }
+            final isPaused = controller.paused();
+            final queued = controller.pausedCount();
+            final findings = controller.findings;
+
+            return Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: controller.togglePause,
+                  icon: Icon(
+                    isPaused ? Icons.play_arrow : Icons.pause,
                     size: 16,
-                    color: findings.any(
-                      (f) => f.severity == LevitDiagnosticSeverity.error,
-                    )
-                        ? Colors.red
-                        : Colors.amber.shade700,
                   ),
-                  label: Text('${findings.length} finding(s)'),
-                  onPressed: () => controller.activeTabIndex.value = 4,
-                  visualDensity: VisualDensity.compact,
+                  label: Text(
+                    isPaused
+                        ? 'Resume${queued > 0 ? ' (+$queued)' : ''}'
+                        : 'Pause',
+                  ),
                 ),
-            ],
-          ],
-        );
-      }),
+                OutlinedButton.icon(
+                  onPressed: controller.loading() ? null : controller.refresh,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Refresh'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final json = controller.exportRedactedJson();
+                    await Clipboard.setData(ClipboardData(text: json));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Copied redacted snapshot JSON.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_all, size: 16),
+                  label: const Text('Copy JSON'),
+                ),
+                if (findings.isNotEmpty)
+                  ActionChip(
+                    avatar: Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: controller.hasErrorFindings
+                          ? Colors.red
+                          : Colors.amber.shade700,
+                    ),
+                    label: Text('${findings.length} finding(s)'),
+                    onPressed: controller.openDiagnosticsTab,
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            );
+          }),
+        ],
+      ),
     );
   }
 }
@@ -287,16 +338,8 @@ class _CountBadge extends StatelessWidget {
   }
 }
 
-class _UnattachedEmptyState extends StatelessWidget {
-  final bool loading;
-  final String? error;
-  final VoidCallback onRetry;
-
-  const _UnattachedEmptyState({
-    required this.loading,
-    required this.error,
-    required this.onRetry,
-  });
+class _UnattachedEmptyState extends LView<LevitInspectorController> {
+  const _UnattachedEmptyState() : super(autoWatch: false);
 
   static const _snippet =
       '''import 'package:levit_devtools/levit_devtools.dart';
@@ -308,7 +351,10 @@ Future<void> main() async {
 }''';
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
     return Center(
       child: SingleChildScrollView(
         child: ConstrainedBox(
@@ -345,28 +391,35 @@ Future<void> main() async {
                       style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                     ),
                   ),
-                  if (error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'Last error: $error',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontSize: 12,
+                  LWatch(() {
+                    final error = controller.errorMessage();
+                    if (error == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        'Last error: $error',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
+                    );
+                  }),
                   const SizedBox(height: 16),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      FilledButton.icon(
-                        onPressed: loading ? null : onRetry,
-                        icon: const Icon(Icons.refresh, size: 16),
-                        label: Text(
-                          loading ? 'Checking...' : 'Retry Connection',
-                        ),
-                      ),
+                      LWatch(() {
+                        final loading = controller.loading();
+                        return FilledButton.icon(
+                          onPressed: loading ? null : controller.refresh,
+                          icon: const Icon(Icons.refresh, size: 16),
+                          label: Text(
+                            loading ? 'Checking...' : 'Retry Connection',
+                          ),
+                        );
+                      }),
                       OutlinedButton.icon(
                         onPressed: () {
                           Clipboard.setData(

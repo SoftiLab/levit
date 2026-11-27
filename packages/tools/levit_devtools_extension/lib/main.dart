@@ -21,7 +21,8 @@ class LevitDevToolsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LevitDevToolsScreen(
-      client: client ?? VmServiceLevitClient(),
+      client: client,
+      createClient: client == null ? VmServiceLevitClient.new : null,
       ownsClient: client == null,
     );
   }

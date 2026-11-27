@@ -7,10 +7,9 @@ import 'package:levit_monitor/spi.dart';
 import '../controller/inspector_controller.dart';
 
 /// Live filterable timeline of redacted [LevitEventEnvelope]s.
-class TimelineView extends StatelessWidget {
-  final LevitInspectorController controller;
-
-  const TimelineView({super.key, required this.controller});
+class TimelineView extends LView<LevitInspectorController> {
+  /// Creates the event timeline inspector view.
+  const TimelineView({super.key}) : super(autoWatch: false);
 
   static const _categories = <String?>[
     null,
@@ -22,7 +21,10 @@ class TimelineView extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
     return Column(
       children: [
         Padding(
@@ -35,13 +37,14 @@ class TimelineView extends StatelessWidget {
               SizedBox(
                 width: 240,
                 child: TextField(
+                  controller: controller.timelineSearchController,
                   decoration: const InputDecoration(
                     isDense: true,
                     prefixIcon: Icon(Icons.search, size: 16),
                     hintText: 'Search timeline events...',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (v) => controller.timelineSearch.value = v,
+                  onChanged: controller.setTimelineSearch,
                 ),
               ),
               LWatch(() {
@@ -55,7 +58,7 @@ class TimelineView extends StatelessWidget {
                         selected: selected == category,
                         visualDensity: VisualDensity.compact,
                         onSelected: (_) =>
-                            controller.timelineCategory.value = category,
+                            controller.setTimelineCategory(category),
                       ),
                   ],
                 );
@@ -71,7 +74,6 @@ class TimelineView extends StatelessWidget {
         const Divider(height: 1),
         Expanded(
           child: LWatch(() {
-            controller.revision();
             final events = controller.filteredTimeline;
             if (events.isEmpty) {
               return const Center(
@@ -101,7 +103,7 @@ class TimelineView extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         subtitle: Text(
-                          _summarize(envelope),
+                          controller.summarizeEvent(envelope),
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 11),
                         ),
@@ -112,8 +114,7 @@ class TimelineView extends StatelessWidget {
                           ),
                           visualDensity: VisualDensity.compact,
                         ),
-                        onTap: () =>
-                            controller.selectedEventSeq.value = envelope.seq,
+                        onTap: () => controller.selectEvent(envelope.seq),
                       );
                     },
                   ),
@@ -126,21 +127,6 @@ class TimelineView extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  String _summarize(LevitEventEnvelope envelope) {
-    final data = envelope.data;
-    if (envelope.type == 'state_change') {
-      final name = data['name'] ?? data['reactiveId'];
-      return '$name: ${data['oldValue']} → ${data['newValue']}';
-    }
-    if (data['scopeName'] != null) {
-      return 'scope: ${data['scopeName']}'
-          '${data['key'] != null ? ' • ${data['key']}' : ''}';
-    }
-    if (data['error'] != null) return 'error: ${data['error']}';
-    if (data['name'] != null) return '${data['name']}';
-    return data['timestamp']?.toString() ?? '';
   }
 }
 

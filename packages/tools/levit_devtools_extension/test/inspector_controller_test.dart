@@ -9,16 +9,26 @@ import 'package:levit_monitor/spi.dart';
 class FakeDevToolsClient implements LevitDevToolsClient {
   LevitRemoteSnapshotResult snapshotResult;
   List<LevitEventEnvelope> history;
+  Object? fetchError;
   final StreamController<LevitEventEnvelope> eventStream =
       StreamController<LevitEventEnvelope>.broadcast();
   final StreamController<bool> connectionStream =
       StreamController<bool>.broadcast();
   bool disposed = false;
 
-  FakeDevToolsClient({required this.snapshotResult, this.history = const []});
+  FakeDevToolsClient({
+    required this.snapshotResult,
+    this.history = const [],
+    this.fetchError,
+  });
 
   @override
-  Future<LevitRemoteSnapshotResult> fetchSnapshot() async => snapshotResult;
+  Future<LevitRemoteSnapshotResult> fetchSnapshot() async {
+    if (fetchError != null) {
+      throw fetchError!;
+    }
+    return snapshotResult;
+  }
 
   @override
   Future<List<LevitEventEnvelope>> fetchHistory({int limit = 500}) async =>

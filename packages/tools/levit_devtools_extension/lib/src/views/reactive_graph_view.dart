@@ -5,13 +5,15 @@ import 'package:levit_monitor/spi.dart';
 import '../controller/inspector_controller.dart';
 
 /// Filterable reactive variable table and dependency graph detail inspector.
-class ReactiveGraphView extends StatelessWidget {
-  final LevitInspectorController controller;
-
-  const ReactiveGraphView({super.key, required this.controller});
+class ReactiveGraphView extends LView<LevitInspectorController> {
+  /// Creates the reactive graph inspector view.
+  const ReactiveGraphView({super.key}) : super(autoWatch: false);
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildView(
+    BuildContext context,
+    LevitInspectorController controller,
+  ) {
     return Column(
       children: [
         Padding(
@@ -24,13 +26,14 @@ class ReactiveGraphView extends StatelessWidget {
               SizedBox(
                 width: 260,
                 child: TextField(
+                  controller: controller.reactiveSearchController,
                   decoration: const InputDecoration(
                     isDense: true,
                     prefixIcon: Icon(Icons.search, size: 16),
                     hintText: 'Filter by name, owner, or type...',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (v) => controller.reactiveSearch.value = v,
+                  onChanged: controller.setReactiveSearch,
                 ),
               ),
               LWatch(() {
@@ -43,8 +46,7 @@ class ReactiveGraphView extends StatelessWidget {
                         label: Text(_labelFor(mode)),
                         selected: active == mode,
                         visualDensity: VisualDensity.compact,
-                        onSelected: (_) =>
-                            controller.reactiveFilter.value = mode,
+                        onSelected: (_) => controller.setReactiveFilter(mode),
                       ),
                   ],
                 );
@@ -55,7 +57,6 @@ class ReactiveGraphView extends StatelessWidget {
         const Divider(height: 1),
         Expanded(
           child: LWatch(() {
-            controller.revision();
             final items = controller.filteredReactives;
             if (items.isEmpty) {
               return const Center(
@@ -103,7 +104,7 @@ class ReactiveGraphView extends StatelessWidget {
                           '${v.listenerCount} L',
                           style: const TextStyle(fontSize: 11),
                         ),
-                        onTap: () => controller.selectedReactiveId.value = v.id,
+                        onTap: () => controller.selectReactive(v.id),
                       );
                     },
                   ),
@@ -111,10 +112,7 @@ class ReactiveGraphView extends StatelessWidget {
                 const VerticalDivider(width: 1),
                 Expanded(
                   flex: 2,
-                  child: _ReactiveDetailPane(
-                    controller: controller,
-                    reactive: selected,
-                  ),
+                  child: _ReactiveDetailPane(reactive: selected),
                 ),
               ],
             );
@@ -134,17 +132,14 @@ class ReactiveGraphView extends StatelessWidget {
 }
 
 class _ReactiveDetailPane extends StatelessWidget {
-  final LevitInspectorController controller;
   final LevitReactiveModel reactive;
 
-  const _ReactiveDetailPane({required this.controller, required this.reactive});
+  const _ReactiveDetailPane({required this.reactive});
 
   @override
   Widget build(BuildContext context) {
-    final upstream = reactive.dependencies
-        .map((id) => controller.snapshot.variables[id])
-        .whereType<LevitReactiveModel>()
-        .toList();
+    final controller = context.levit.find<LevitInspectorController>();
+    final upstream = controller.upstreamDependenciesOf(reactive);
     final downstream = controller.downstreamDependentsOf(reactive.id);
 
     return ListView(
@@ -186,7 +181,7 @@ class _ReactiveDetailPane extends StatelessWidget {
               dense: true,
               title: Text(dep.name),
               subtitle: Text(dep.isSensitive ? '***' : '${dep.value}'),
-              onTap: () => controller.selectedReactiveId.value = dep.id,
+              onTap: () => controller.selectReactive(dep.id),
             ),
           ),
         const SizedBox(height: 16),
@@ -203,7 +198,7 @@ class _ReactiveDetailPane extends StatelessWidget {
               dense: true,
               title: Text(dep.name),
               subtitle: Text(dep.isSensitive ? '***' : '${dep.value}'),
-              onTap: () => controller.selectedReactiveId.value = dep.id,
+              onTap: () => controller.selectReactive(dep.id),
             ),
           ),
       ],

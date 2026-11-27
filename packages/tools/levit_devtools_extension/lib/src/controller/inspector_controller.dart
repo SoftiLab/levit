@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:levit_flutter/levit_flutter.dart';
 import 'package:levit_monitor/spi.dart';
 
@@ -10,8 +11,20 @@ import '../client/devtools_client.dart';
 /// Filter pills available in the Reactives tab.
 enum ReactiveFilterMode { all, sensitive, unowned, computed, highListeners }
 
+/// Flattened scope hierarchy entry rendered by `ScopeTreeView`.
+final class ScopeTreeNode {
+  /// Scope model from the current redacted runtime snapshot.
+  final LevitScopeModel scope;
+
+  /// Nesting depth in the active scope hierarchy (`0` for root scopes).
+  final int depth;
+
+  /// Creates a flattened scope tree node.
+  const ScopeTreeNode(this.scope, this.depth);
+}
+
 /// Owns the client-side [LevitStateSnapshot], live stream buffering, filters,
-/// and deterministic anomaly diagnostics for the DevTools extension UI.
+/// navigation state, and deterministic anomaly diagnostics for the DevTools UI.
 class LevitInspectorController extends LevitController {
   /// Maximum history events retained in the DevTools UI buffer.
   static const int maxTimelineEvents = 500;
@@ -30,54 +43,159 @@ class LevitInspectorController extends LevitController {
   final ListQueue<LevitEventEnvelope> _pausedBuffer = ListQueue();
 
   /// Whether the target isolate has `LevitDevTools` / `LevitMonitor` attached.
-  final attached = false.lx;
+  final attached = false.lx.named('attached');
 
   /// Whether a snapshot refresh is currently in progress.
-  final loading = false.lx;
+  final loading = false.lx.named('loading');
 
   /// Whether live event ingestion is currently paused.
-  final paused = false.lx;
+  final paused = false.lx.named('paused');
 
   /// Number of events queued while paused.
-  final pausedCount = 0.lx;
+  final pausedCount = 0.lx.named('pausedCount');
 
   /// Last connection or refresh error, if any.
-  final errorMessage = LxVar<String?>(null);
+  final errorMessage = LxVar<String?>(null).named('errorMessage');
 
   /// Monotonic counter incremented whenever snapshot data changes.
-  final revision = 0.lx;
+  final revision = 0.lx.named('revision');
 
   /// Total dropped events reported by the target isolate.
-  final droppedEvents = 0.lx;
+  final droppedEvents = 0.lx.named('droppedEvents');
 
   /// Active tab index (`0=Scopes`, `1=Reactives`, `2=Tasks`, `3=Timeline`, `4=Diagnostics`).
-  final activeTabIndex = 0.lx;
+  final activeTabIndex = 0.lx.named('activeTabIndex');
 
   /// Currently selected scope ID in the Scopes tab.
-  final selectedScopeId = LxVar<int?>(null);
+  final selectedScopeId = LxVar<int?>(null).named('selectedScopeId');
 
   /// Currently selected reactive ID in the Reactives tab.
-  final selectedReactiveId = LxVar<int?>(null);
+  final selectedReactiveId = LxVar<int?>(null).named('selectedReactiveId');
 
   /// Currently selected timeline event sequence number.
-  final selectedEventSeq = LxVar<int?>(null);
+  final selectedEventSeq = LxVar<int?>(null).named('selectedEventSeq');
 
   /// Search query for the Reactives tab.
-  final reactiveSearch = ''.lx;
+  final reactiveSearch = ''.lx.named('reactiveSearch');
 
   /// Quick filter mode for the Reactives tab.
-  final reactiveFilter = LxVar<ReactiveFilterMode>(ReactiveFilterMode.all);
+  final reactiveFilter =
+      LxVar<ReactiveFilterMode>(ReactiveFilterMode.all).named('reactiveFilter');
 
   /// Search query for the Timeline tab.
-  final timelineSearch = ''.lx;
+  final timelineSearch = ''.lx.named('timelineSearch');
 
   /// Optional category filter (`state`, `di`, `log`, `custom`, `error`) for Timeline.
-  final timelineCategory = LxVar<String?>(null);
+  final timelineCategory = LxVar<String?>(null).named('timelineCategory');
 
   /// Configurable high-listener warning threshold for Diagnostics.
-  final highListenerThreshold =
-      LevitSnapshotDiagnostics.defaultHighListenerThreshold.lx;
+  final highListenerThreshold = LevitSnapshotDiagnostics
+      .defaultHighListenerThreshold.lx
+      .named('highListenerThreshold');
 
+  /// Owned text controller for the Reactives search input.
+  late final TextEditingController reactiveSearchController = own(
+    TextEditingController(),
+    dispose: (controller) => controller.dispose(),
+  );
+
+  /// Owned text controller for the Timeline search input.
+  late final TextEditingController timelineSearchController = own(
+    TextEditingController(),
+    dispose: (controller) => controller.dispose(),
+  );
+
+  late final LxComputed<List<LevitDiagnosticFinding>> _findings = computed(
+    () {
+      revision();
+      return LevitSnapshotDiagnostics.analyze(
+        _snapshot,
+        recentErrors: recentErrors,
+        highListenerThreshold: highListenerThreshold(),
+      );
+    },
+    name: 'findings',
+  );
+
+  late final LxComputed<List<ScopeTreeNode>> _flattenedScopes = computed(
+    () {
+      revision();
+      return _buildScopeTree(_snapshot.scopes);
+    },
+    name: 'flattenedScopes',
+  );
+
+  late final LxComputed<List<LevitReactiveModel>> _filteredReactives = computed(
+    () {
+      revision();
+      final query = reactiveSearch().trim().toLowerCase();
+      final filter = reactiveFilter();
+      final threshold = highListenerThreshold();
+
+      final list = _snapshot.variables.values.where((v) {
+        switch (filter) {
+          case ReactiveFilterMode.all:
+            break;
+          case ReactiveFilterMode.sensitive:
+            if (!v.isSensitive) return false;
+          case ReactiveFilterMode.unowned:
+            if (v.ownerId != null &&
+                v.ownerId!.isNotEmpty &&
+                v.ownerId != '?') {
+              return false;
+            }
+          case ReactiveFilterMode.computed:
+            if (v.dependencies.isEmpty) return false;
+          case ReactiveFilterMode.highListeners:
+            if (v.listenerCount < threshold) return false;
+        }
+        if (query.isEmpty) return true;
+        return v.name.toLowerCase().contains(query) ||
+            (v.ownerId?.toLowerCase().contains(query) ?? false) ||
+            (v.valueType?.toLowerCase().contains(query) ?? false) ||
+            '${v.id}'.contains(query);
+      }).toList()
+        ..sort((a, b) => a.name.compareTo(b.name));
+      return list;
+    },
+    name: 'filteredReactives',
+  );
+
+  late final LxComputed<List<LevitEventEnvelope>> _filteredTimeline = computed(
+    () {
+      revision();
+      final query = timelineSearch().trim().toLowerCase();
+      final category = timelineCategory();
+      final matched = <LevitEventEnvelope>[];
+      for (final envelope in _snapshot.events.reversed) {
+        if (category != null && envelope.category != category) continue;
+        if (query.isNotEmpty) {
+          final data = envelope.data;
+          final haystack =
+              '${envelope.type} ${envelope.category} ${data['name'] ?? ''} '
+                      '${data['key'] ?? ''} ${data['ownerId'] ?? ''} '
+                      '${data['scopeName'] ?? ''} ${data['error'] ?? ''}'
+                  .toLowerCase();
+          if (!haystack.contains(query)) continue;
+        }
+        matched.add(envelope);
+      }
+      return matched;
+    },
+    name: 'filteredTimeline',
+  );
+
+  late final LxComputed<List<MapEntry<String, Map<String, dynamic>>>>
+      _sortedTaskTrees = computed(
+    () {
+      revision();
+      return _snapshot.taskTrees.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+    },
+    name: 'sortedTaskTrees',
+  );
+
+  /// Creates an inspector controller backed by [_client].
   LevitInspectorController(this._client, {bool ownsClient = true})
       : _ownsClient = ownsClient;
 
@@ -89,11 +207,24 @@ class LevitInspectorController extends LevitController {
       List.unmodifiable(_recentErrors);
 
   /// Live deterministic diagnostic findings computed from [snapshot].
-  List<LevitDiagnosticFinding> get findings => LevitSnapshotDiagnostics.analyze(
-        _snapshot,
-        recentErrors: recentErrors,
-        highListenerThreshold: highListenerThreshold.value,
-      );
+  List<LevitDiagnosticFinding> get findings => _findings();
+
+  /// Whether any active diagnostic finding has error severity.
+  bool get hasErrorFindings =>
+      findings.any((f) => f.severity == LevitDiagnosticSeverity.error);
+
+  /// Flattened scope tree in deterministic depth-first order.
+  List<ScopeTreeNode> get flattenedScopes => _flattenedScopes();
+
+  /// Filtered reactive variables matching [reactiveSearch] and [reactiveFilter].
+  List<LevitReactiveModel> get filteredReactives => _filteredReactives();
+
+  /// Filtered timeline events in reverse-chronological order (newest first).
+  List<LevitEventEnvelope> get filteredTimeline => _filteredTimeline();
+
+  /// Active task tree entries sorted by owner path.
+  List<MapEntry<String, Map<String, dynamic>>> get sortedTaskTrees =>
+      _sortedTaskTrees();
 
   @override
   void onInit() {
@@ -239,68 +370,118 @@ class LevitInspectorController extends LevitController {
     revision.value++;
   }
 
+  /// Selects an inspector tab by index (`0..4`).
+  void selectTab(int index) {
+    activeTabIndex.value = index;
+  }
+
+  /// Selects a scope in the Scopes tab without changing tabs.
+  void selectScope(int scopeId) {
+    selectedScopeId.value = scopeId;
+  }
+
+  /// Selects a reactive variable in the Reactives tab without changing tabs.
+  void selectReactive(int reactiveId) {
+    selectedReactiveId.value = reactiveId;
+  }
+
+  /// Selects an event in the Timeline tab.
+  void selectEvent(int seq) {
+    selectedEventSeq.value = seq;
+  }
+
+  /// Updates the reactive search query.
+  void setReactiveSearch(String query) {
+    reactiveSearch.value = query;
+  }
+
+  /// Updates the active reactive filter pill.
+  void setReactiveFilter(ReactiveFilterMode mode) {
+    reactiveFilter.value = mode;
+  }
+
+  /// Updates the timeline search query.
+  void setTimelineSearch(String query) {
+    timelineSearch.value = query;
+  }
+
+  /// Updates the active timeline category filter.
+  void setTimelineCategory(String? category) {
+    timelineCategory.value = category;
+  }
+
+  /// Updates the high-listener warning threshold used by diagnostics and filters.
+  void setHighListenerThreshold(int threshold) {
+    highListenerThreshold.value = threshold;
+  }
+
   /// Jumps to a specific scope in the Scopes tab.
   void focusScope(int scopeId) {
-    selectedScopeId.value = scopeId;
-    activeTabIndex.value = 0;
+    Levit.batch(() {
+      selectedScopeId.value = scopeId;
+      activeTabIndex.value = 0;
+    });
   }
 
   /// Jumps to a specific reactive in the Reactives tab.
   void focusReactive(int reactiveId) {
-    selectedReactiveId.value = reactiveId;
-    activeTabIndex.value = 1;
+    Levit.batch(() {
+      selectedReactiveId.value = reactiveId;
+      activeTabIndex.value = 1;
+    });
   }
 
-  /// Filtered reactive variables matching [reactiveSearch] and [reactiveFilter].
-  List<LevitReactiveModel> get filteredReactives {
-    final query = reactiveSearch.value.trim().toLowerCase();
-    final filter = reactiveFilter.value;
-    final threshold = highListenerThreshold.value;
+  /// Switches to the Scopes tab.
+  void openScopesTab() => selectTab(0);
 
-    final list = _snapshot.variables.values.where((v) {
-      switch (filter) {
-        case ReactiveFilterMode.all:
-          break;
-        case ReactiveFilterMode.sensitive:
-          if (!v.isSensitive) return false;
-        case ReactiveFilterMode.unowned:
-          if (v.ownerId != null && v.ownerId!.isNotEmpty && v.ownerId != '?') {
-            return false;
-          }
-        case ReactiveFilterMode.computed:
-          if (v.dependencies.isEmpty) return false;
-        case ReactiveFilterMode.highListeners:
-          if (v.listenerCount < threshold) return false;
-      }
-      if (query.isEmpty) return true;
-      return v.name.toLowerCase().contains(query) ||
-          (v.ownerId?.toLowerCase().contains(query) ?? false) ||
-          (v.valueType?.toLowerCase().contains(query) ?? false) ||
-          '${v.id}'.contains(query);
-    }).toList()
+  /// Switches to the Diagnostics tab.
+  void openDiagnosticsTab() => selectTab(4);
+
+  /// Filters Reactives to unowned variables and switches to the Reactives tab.
+  void showUnownedReactives() {
+    Levit.batch(() {
+      reactiveFilter.value = ReactiveFilterMode.unowned;
+      activeTabIndex.value = 1;
+    });
+  }
+
+  /// Filters Reactives to high-listener variables and switches to Reactives.
+  void showHighListenerReactives() {
+    Levit.batch(() {
+      reactiveFilter.value = ReactiveFilterMode.highListeners;
+      activeTabIndex.value = 1;
+    });
+  }
+
+  /// Returns the number of tracked DI dependencies in [scopeId].
+  int dependencyCountForScope(int scopeId) {
+    return _snapshot.dependencies.values
+        .where((d) => d.scopeId == scopeId)
+        .length;
+  }
+
+  /// Returns sorted DI dependency registrations owned by [scopeId].
+  List<LevitDependencyModel> dependenciesForScope(int scopeId) {
+    return _snapshot.dependencies.values
+        .where((d) => d.scopeId == scopeId)
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+  }
+
+  /// Returns sorted reactive variables linked to [scopeId].
+  List<LevitReactiveModel> ownedReactivesForScope(int scopeId) {
+    return _snapshot.variables.values
+        .where((v) => v.scopeId == scopeId)
+        .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
-    return list;
   }
 
-  /// Filtered timeline events in reverse-chronological order (newest first).
-  List<LevitEventEnvelope> get filteredTimeline {
-    final query = timelineSearch.value.trim().toLowerCase();
-    final category = timelineCategory.value;
-    final matched = <LevitEventEnvelope>[];
-    for (final envelope in _snapshot.events.reversed) {
-      if (category != null && envelope.category != category) continue;
-      if (query.isNotEmpty) {
-        final data = envelope.data;
-        final haystack =
-            '${envelope.type} ${envelope.category} ${data['name'] ?? ''} '
-                    '${data['key'] ?? ''} ${data['ownerId'] ?? ''} '
-                    '${data['scopeName'] ?? ''} ${data['error'] ?? ''}'
-                .toLowerCase();
-        if (!haystack.contains(query)) continue;
-      }
-      matched.add(envelope);
-    }
-    return matched;
+  /// Returns resolved upstream reactive models for [reactive].
+  List<LevitReactiveModel> upstreamDependenciesOf(LevitReactiveModel reactive) {
+    return reactive.dependencies
+        .map((id) => _snapshot.variables[id])
+        .whereType<LevitReactiveModel>()
+        .toList();
   }
 
   /// Returns downstream reactive models that list [reactiveId] in their
@@ -312,6 +493,22 @@ class LevitInspectorController extends LevitController {
       ..sort((a, b) => a.name.compareTo(b.name));
   }
 
+  /// Builds a concise single-line summary for a timeline [envelope].
+  String summarizeEvent(LevitEventEnvelope envelope) {
+    final data = envelope.data;
+    if (envelope.type == 'state_change') {
+      final name = data['name'] ?? data['reactiveId'];
+      return '$name: ${data['oldValue']} → ${data['newValue']}';
+    }
+    if (data['scopeName'] != null) {
+      return 'scope: ${data['scopeName']}'
+          '${data['key'] != null ? ' • ${data['key']}' : ''}';
+    }
+    if (data['error'] != null) return 'error: ${data['error']}';
+    if (data['name'] != null) return '${data['name']}';
+    return data['timestamp']?.toString() ?? '';
+  }
+
   /// Exports a pretty-printed, redacted JSON snapshot for sharing/bug reports.
   String exportRedactedJson() {
     const encoder = JsonEncoder.withIndent('  ');
@@ -321,6 +518,35 @@ class LevitInspectorController extends LevitController {
       'findings': findings.map((f) => f.toJson()).toList(),
       'droppedEvents': droppedEvents.value,
     });
+  }
+
+  List<ScopeTreeNode> _buildScopeTree(Map<int, LevitScopeModel> scopes) {
+    final childrenByParent = <int?, List<LevitScopeModel>>{};
+    for (final scope in scopes.values) {
+      final parentId =
+          scope.parentScopeId != null && scopes.containsKey(scope.parentScopeId)
+              ? scope.parentScopeId
+              : null;
+      childrenByParent.putIfAbsent(parentId, () => []).add(scope);
+    }
+    for (final list in childrenByParent.values) {
+      list.sort((a, b) => a.id.compareTo(b.id));
+    }
+
+    final result = <ScopeTreeNode>[];
+    final visited = <int>{};
+    void visit(LevitScopeModel scope, int depth) {
+      if (!visited.add(scope.id)) return;
+      result.add(ScopeTreeNode(scope, depth));
+      for (final child in childrenByParent[scope.id] ?? const []) {
+        visit(child, depth + 1);
+      }
+    }
+
+    for (final root in childrenByParent[null] ?? const []) {
+      visit(root, 0);
+    }
+    return result;
   }
 
   @override
