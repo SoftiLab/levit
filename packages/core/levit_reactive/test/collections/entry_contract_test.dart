@@ -134,7 +134,7 @@ void main() {
       'delayed and repeated activation reconnect retired channels (static=$fixed)',
       () async {
         final map = <int, int>{1: 0}.lx;
-        final selected = LxComputed(() => map[1]!, staticDeps: fixed);
+        final selected = LxComputed(() => map[1], staticDeps: fixed);
         await Future<void>.delayed(Duration.zero);
         expect(map.observedChannelCount, 0);
         map[1] = 2;
