@@ -30,7 +30,7 @@ void main() {
     var notifications = 0;
     for (final value in computed) {
       value.addListener(() {
-        value.value;
+        value(); // Pull the lazy computed value before counting the update.
         notifications++;
       });
     }

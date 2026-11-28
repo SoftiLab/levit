@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Check source-only Dart lints in current file",
+      "type": "process",
+      "command": "${workspaceFolder}/.fvm/flutter_sdk/bin/cache/dart-sdk/bin/dart",
+      "windows": {
+        "command": "${workspaceFolder}/.fvm/flutter_sdk/bin/cache/dart-sdk/bin/dart.exe"
+      },
+      "args": ["run", "scripts/check_source_lints.dart", "${file}"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": {
+        "owner": "dart-source-lints",
+        "source": "Dart (source-only)",
+        "severity": "warning",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^(.+):(\\d+):(\\d+): (.+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
+      }
+    }
+  ]
+}

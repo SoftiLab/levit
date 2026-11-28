@@ -3,6 +3,16 @@ import 'package:test/test.dart';
 
 Never _throwFromComputedHelper() => throw StateError('boom');
 
+void _expectOriginalStackTrace(void Function() trigger) {
+  try {
+    trigger();
+    fail('Expected StateError');
+  } on StateError catch (error, stackTrace) {
+    expect(error.message, 'boom');
+    expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
+  }
+}
+
 class _GraphChangeMiddleware extends LevitReactiveMiddleware {
   @override
   void Function(LxReactive, List<LxReactive>)? get onGraphChange => (_, __) {};
@@ -18,13 +28,7 @@ void main() {
     final worker = LxWorker(computed, (_) {});
     addTearDown(worker.close);
 
-    try {
-      source.value = 1;
-      fail('Expected StateError');
-    } on StateError catch (error, stackTrace) {
-      expect(error.message, 'boom');
-      expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
-    }
+    _expectOriginalStackTrace(() => source.value = 1);
   });
 
   test('staticDeps recompute preserves original stack trace', () {
@@ -36,13 +40,7 @@ void main() {
     final worker = LxWorker(computed, (_) {});
     addTearDown(worker.close);
 
-    try {
-      source.value = 1;
-      fail('Expected StateError');
-    } on StateError catch (error, stackTrace) {
-      expect(error.message, 'boom');
-      expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
-    }
+    _expectOriginalStackTrace(() => source.value = 1);
   });
 
   test('inactive pull read preserves original stack trace', () {
@@ -54,13 +52,7 @@ void main() {
 
     shouldThrow.value = true;
 
-    try {
-      computed.value;
-      fail('Expected StateError');
-    } on StateError catch (error, stackTrace) {
-      expect(error.message, 'boom');
-      expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
-    }
+    _expectOriginalStackTrace(() => computed.value);
   });
 
   test('graph-captured pull read preserves original stack trace', () {
@@ -76,13 +68,7 @@ void main() {
 
     shouldThrow.value = true;
 
-    try {
-      computed.value;
-      fail('Expected StateError');
-    } on StateError catch (error, stackTrace) {
-      expect(error.message, 'boom');
-      expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
-    }
+    _expectOriginalStackTrace(() => computed.value);
   });
 
   test(
@@ -101,13 +87,7 @@ void main() {
 
       shouldThrow.value = true;
 
-      try {
-        outer.value;
-        fail('Expected StateError');
-      } on StateError catch (error, stackTrace) {
-        expect(error.message, 'boom');
-        expect(stackTrace.toString(), contains('_throwFromComputedHelper'));
-      }
+      _expectOriginalStackTrace(() => outer.value);
     },
   );
 }

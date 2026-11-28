@@ -29,12 +29,8 @@ void main() {
     );
     final composite = LevitReactiveBatch([(rx, change1)]);
 
-    try {
-      composite.oldValue;
-    } catch (_) {}
-    try {
-      composite.newValue;
-    } catch (_) {}
+    expect(() => composite.oldValue, returnsNormally);
+    expect(() => composite.newValue, returnsNormally);
 
     expect(composite.stackTrace, isNull);
     expect(composite.toString(), contains('Batch'));

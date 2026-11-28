@@ -13,6 +13,10 @@
 
 include: package:lints/recommended.yaml
 
+linter:
+  rules:
+    unnecessary_statements: true
+
 # Uncomment the following section to specify additional rules.
 
 # linter:

@@ -174,10 +174,7 @@ class GetXLargeList extends _LargeListBase {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      version.value;
-      return buildList();
-    });
+    return Obx(buildList);
   }
 
   @override

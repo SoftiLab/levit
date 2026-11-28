@@ -77,18 +77,18 @@ void main() {
         m.refresh(1),
         throwsA(isA<LevitTaskCancelledException>()),
       );
-      final old = m.peek(1)!;
+      final old = m.peek(1);
       await started.future;
       var finished = false;
       final retiring = m.evict(1).then((_) => finished = true);
-      expect(old.isClosed, true);
+      expect(old?.isClosed, isTrue);
       expect(m.peek(1), isNull);
       expect(await m.fetch(1), 1);
       expect(finished, false);
       release.complete();
       await check;
       await retiring;
-      expect(() => old.value, throwsStateError);
+      expect(() => old?.value, throwsStateError);
       await m.close();
     },
   );

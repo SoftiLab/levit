@@ -86,6 +86,28 @@ melos run test --no-select
 melos run test:flutter --no-select
 ```
 
+`melos analyse` and the CI analysis step both run `melos run analyze --no-select`.
+The first pass runs `dart analyze --fatal-infos .` on the entire workspace,
+including its scripts and tests. The second pass loads each package's analyzer
+presets and checks all Dart lint diagnostics with application imports unresolved.
+This reproduces additional findings seen on CodeFactor. Change lint policy in
+`analysis_options.yaml`. Both passes pick up enabled rules automatically.
+
+To inspect the second pass for one path, run:
+
+```bash
+dart run scripts/check_source_lints.dart packages/core/levit_reactive
+```
+
+In VS Code, save the file and choose **Tasks: Run Task → Check source-only Dart
+lints in current file**. Each finding includes its rule, file, line and column.
+
+Missing types can produce misleading lints. For example, a cleanup method can
+return a future that the caller must receive. `scripts/reviewed_source_lints.txt`
+records independently verified cases by file, rule and source line, once per
+occurrence. Unexpected findings fail the check. A full scan also fails when a
+reviewed entry becomes obsolete. The type-aware pass checks every occurrence.
+
 ### Development tools and reports
 
 Keep `scripts/` limited to maintained development, CI, build and release checks.

@@ -24,10 +24,14 @@ scripts:
     description: Run analysis and test checks
 
   analyze:
-    run: dart analyze --fatal-infos
-    description: Run static analysis
-    exec:
-      concurrency: 6
+    run: >-
+      dart analyze --fatal-infos . &&
+      dart run scripts/check_source_lints.dart
+    description: Run type-aware analysis and check for new source-only Dart lints
+
+  analyse:
+    run: dart run melos run analyze --no-select
+    description: Run the same Dart analysis as CI
 
   test:
     run: dart test
