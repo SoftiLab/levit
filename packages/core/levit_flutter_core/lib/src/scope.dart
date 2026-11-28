@@ -264,15 +264,15 @@ class _ScopeState<W extends _ScopeWidget> extends State<W> {
     final parent = _ScopeProvider.of(context, listen: true) ?? Ls.currentScope;
     if (!identical(parent, _parent)) {
       _parent = parent;
-      _configure();
+      _configure(parent);
     }
   }
 
-  void _configure() {
+  void _configure(LevitScope parent) {
     final configure = widget.configure;
     unawaited(
       _lifecycle.replace(
-        parent: _parent!,
+        parent: parent,
         name: widget.name ?? _uniqueScopeName(widget, this),
         initialize: (scope) => configure?.call(scope),
       ),
@@ -287,9 +287,11 @@ class _ScopeState<W extends _ScopeWidget> extends State<W> {
         'Keep the lifecycle controller stable or use a new widget key.',
       );
     }
-    if (widget.name != oldWidget.name ||
-        !_scopeArgsMatch(widget.args, oldWidget.args)) {
-      _configure();
+    final parent = _parent;
+    if (parent != null &&
+        (widget.name != oldWidget.name ||
+            !_scopeArgsMatch(widget.args, oldWidget.args))) {
+      _configure(parent);
     }
   }
 

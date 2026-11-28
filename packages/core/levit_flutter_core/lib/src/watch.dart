@@ -65,7 +65,7 @@ class _LWatchElement extends ComponentElement
   LxListenerContext? _cachedContext;
   LevitScope? _cachedScope;
   bool _scopeResolved = false;
-  late final VoidCallback _triggerRebuildCallback = _triggerRebuild;
+  late final _triggerRebuildCallback = _triggerRebuild;
 
   LevitScope? _resolveNearestScope() {
     if (!_scopeResolved) {
@@ -90,14 +90,15 @@ class _LWatchElement extends ComponentElement
   @override
   void addNotifier(LevitReactiveNotifier notifier) {
     if (_expectingSingle) {
-      if (identical(_singleNotifier, notifier)) {
+      final previous = _singleNotifier;
+      if (identical(previous, notifier)) {
         _singleMatched = true;
         return;
       }
       _expectingSingle = false;
       final captured = _newNotifiers ??= [];
-      if (_singleMatched) {
-        captured.add(_singleNotifier!);
+      if (_singleMatched && previous != null) {
+        captured.add(previous);
       }
       captured.add(notifier);
       return;

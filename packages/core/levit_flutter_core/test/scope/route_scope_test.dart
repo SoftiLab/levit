@@ -11,6 +11,11 @@ final _openAsyncDetailsKey = UniqueKey();
 final _popAsyncDetailsKey = UniqueKey();
 final _replaceAsyncRouteKey = UniqueKey();
 
+LxReactive<LRouteVisibility> _requireVisibility(
+  LxReactive<LRouteVisibility>? visibility,
+) =>
+    visibility ?? fail('Expected the route scope to expose its visibility.');
+
 void main() {
   setUp(() async {
     await Levit.reset(force: true);
@@ -30,7 +35,8 @@ void main() {
                     builder: (context) {
                       final controller = context.levit.find<TestController>();
                       final route = LRouteScope.routeOf(context);
-                      final visibility = LRouteScope.visibilityOf(context)!;
+                      final visibility =
+                          _requireVisibility(LRouteScope.visibilityOf(context));
 
                       return Column(
                         children: [
@@ -226,7 +232,8 @@ void main() {
                     );
                   },
                   loading: (context) {
-                    final visibility = LAsyncRouteScope.visibilityOf(context)!;
+                    final visibility = _requireVisibility(
+                        LAsyncRouteScope.visibilityOf(context));
                     return LBuilder<LRouteVisibility>(
                       visibility,
                       (value) => Text('loading:${value.name}'),
@@ -236,8 +243,8 @@ void main() {
                     builder: (context) {
                       final controller = context.levit.find<TestController>();
                       final route = LAsyncRouteScope.routeOf(context);
-                      final visibility =
-                          LAsyncRouteScope.visibilityOf(context)!;
+                      final visibility = _requireVisibility(
+                          LAsyncRouteScope.visibilityOf(context));
 
                       return Column(
                         children: [
@@ -410,7 +417,8 @@ class _HomeRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LRouteScope.visibilityOf(context)!;
+            final visibility =
+                _requireVisibility(LRouteScope.visibilityOf(context));
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -439,7 +447,8 @@ class _DetailsRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LRouteScope.visibilityOf(context)!;
+            final visibility =
+                _requireVisibility(LRouteScope.visibilityOf(context));
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -469,7 +478,8 @@ class _AsyncHomeRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LAsyncRouteScope.visibilityOf(context)!;
+            final visibility =
+                _requireVisibility(LAsyncRouteScope.visibilityOf(context));
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
@@ -499,7 +509,8 @@ class _AsyncDetailsRoutePage extends StatelessWidget {
       child: Scaffold(
         body: Builder(
           builder: (context) {
-            final visibility = LAsyncRouteScope.visibilityOf(context)!;
+            final visibility =
+                _requireVisibility(LAsyncRouteScope.visibilityOf(context));
             return Center(
               child: LBuilder<LRouteVisibility>(
                 visibility,
