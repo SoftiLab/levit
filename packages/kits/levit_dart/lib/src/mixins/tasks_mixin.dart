@@ -358,6 +358,15 @@ mixin LevitTasksMixin on LevitController {
       _drainTaskEngineBeforeClose(this, () => super.onBeforeClose());
 }
 
+typedef _TrackedTaskSubmission<T> = ({
+  String taskId,
+  LevitTaskMetadata metadata,
+  void Function(LevitTaskEvent event) onEvent,
+  void Function(T result) onSuccess,
+  void Function(Object error, StackTrace stackTrace) onFailure,
+  void Function() onCancel,
+});
+
 /// Adds reactive task state, progress aggregation, and selectors to a
 /// [LevitController].
 ///
@@ -658,28 +667,20 @@ mixin LevitReactiveTasksMixin on LevitController {
       onError: onError,
       metadata: metadata,
       debugName: debugName,
-      submit: ({
-        required taskId,
-        required taskMetadata,
-        required onEvent,
-        required onSuccess,
-        required onFailure,
-        required onCancel,
-      }) =>
-          taskEngine.submit<T>(
+      submit: (submission) => taskEngine.submit<T>(
         task,
-        id: taskId,
+        id: submission.taskId,
         priority: priority,
         conflictPolicy: conflictPolicy,
         retryPolicy: retryPolicy,
         group: group,
         deadline: deadline,
         cachePolicy: cachePolicy,
-        metadata: taskMetadata,
-        onEvent: onEvent,
-        onSuccess: onSuccess,
-        onError: onFailure,
-        onCancel: onCancel,
+        metadata: submission.metadata,
+        onEvent: submission.onEvent,
+        onSuccess: submission.onSuccess,
+        onError: submission.onFailure,
+        onCancel: submission.onCancel,
       ),
     );
   }
@@ -865,29 +866,21 @@ mixin LevitReactiveTasksMixin on LevitController {
       onError: onError,
       metadata: metadata,
       debugName: debugName,
-      submit: ({
-        required taskId,
-        required taskMetadata,
-        required onEvent,
-        required onSuccess,
-        required onFailure,
-        required onCancel,
-      }) =>
-          taskEngine.submitIsolate<I, T>(
+      submit: (submission) => taskEngine.submitIsolate<I, T>(
         task,
         input,
-        id: taskId,
+        id: submission.taskId,
         priority: priority,
         conflictPolicy: conflictPolicy,
         retryPolicy: retryPolicy,
         group: group,
         deadline: deadline,
         cachePolicy: cachePolicy,
-        metadata: taskMetadata,
-        onEvent: onEvent,
-        onSuccess: onSuccess,
-        onError: onFailure,
-        onCancel: onCancel,
+        metadata: submission.metadata,
+        onEvent: submission.onEvent,
+        onSuccess: submission.onSuccess,
+        onError: submission.onFailure,
+        onCancel: submission.onCancel,
       ),
     );
   }
@@ -899,14 +892,7 @@ mixin LevitReactiveTasksMixin on LevitController {
     required void Function(Object error, StackTrace stackTrace)? onError,
     required LevitTaskMetadata? metadata,
     required String? debugName,
-    required LevitTaskExecution<T> Function({
-      required String taskId,
-      required LevitTaskMetadata taskMetadata,
-      required void Function(LevitTaskEvent event) onEvent,
-      required void Function(T result) onSuccess,
-      required void Function(Object error, StackTrace stackTrace) onFailure,
-      required void Function() onCancel,
-    }) submit,
+    required LevitTaskExecution<T> Function(_TrackedTaskSubmission<T>) submit,
   }) {
     _ensureReactiveTaskState();
     if (!weight.isFinite || weight < 0) {
@@ -922,9 +908,9 @@ mixin LevitReactiveTasksMixin on LevitController {
     String? executionId;
     LxStatus<dynamic> Function(LxStatus<dynamic> previous)? pendingStatus;
     double? pendingProgress;
-    final execution = submit(
+    final execution = submit((
       taskId: taskId,
-      taskMetadata: taskMetadata,
+      metadata: taskMetadata,
       onEvent: (event) {
         executionId ??= event.executionId;
         latestEvent = event;
@@ -966,7 +952,7 @@ mixin LevitReactiveTasksMixin on LevitController {
       onCancel: () {
         pendingStatus = LxIdle<dynamic>.fromPrevious;
       },
-    );
+    ));
     executionId ??= execution.executionId;
 
     if (execution.disposition == LevitTaskSubmissionDisposition.joined ||

@@ -278,36 +278,24 @@ class LevitTaskEngine
     LevitTaskMetadata? metadata,
     String? debugName,
   }) {
-    _ensureUsable();
-
-    final taskId = id ?? _generateTaskId();
-    final taskMetadata = metadata ??
-        (debugName == null
-            ? LevitTaskMetadata.none
-            : LevitTaskMetadata(debugName: debugName));
-    final resolvedGroup = _resolveGroup(group);
-    final config = _TaskExecutionConfig(
-      task: task,
+    return _submit<T>(
+      task,
+      runsInIsolate: false,
+      id: id,
       priority: priority,
+      conflictPolicy: conflictPolicy,
       retryPolicy: retryPolicy,
-      group: resolvedGroup,
-      deadline: _earliestDeadline(deadline, resolvedGroup.deadline),
+      group: group,
+      deadline: deadline,
       onError: onError,
       cachePolicy: cachePolicy,
       onStart: onStart,
-      onSuccess:
-          onSuccess == null ? null : (dynamic value) => onSuccess(value as T),
+      onSuccess: onSuccess,
       onProgress: onProgress,
       onCancel: onCancel,
       onEvent: onEvent,
-      metadata: taskMetadata,
-      runsInIsolate: false,
-    );
-
-    return _submitConfig<T>(
-      taskId: taskId,
-      config: config,
-      conflictPolicy: conflictPolicy,
+      metadata: metadata,
+      debugName: debugName,
     );
   }
 
@@ -381,6 +369,47 @@ class LevitTaskEngine
     LevitTaskMetadata? metadata,
     String? debugName,
   }) {
+    return _submit<T>(
+      (context) =>
+          _runInTaskIsolate(task: task, input: input, context: context),
+      runsInIsolate: true,
+      id: id,
+      priority: priority,
+      conflictPolicy: conflictPolicy,
+      retryPolicy: retryPolicy,
+      group: group,
+      deadline: deadline,
+      onError: onError,
+      cachePolicy: cachePolicy,
+      onStart: onStart,
+      onSuccess: onSuccess,
+      onProgress: onProgress,
+      onCancel: onCancel,
+      onEvent: onEvent,
+      metadata: metadata,
+      debugName: debugName,
+    );
+  }
+
+  LevitTaskExecution<T> _submit<T>(
+    FutureOr<T> Function(LevitTaskContext context) task, {
+    required bool runsInIsolate,
+    required String? id,
+    required LevitTaskPriority priority,
+    required LevitTaskConflictPolicy conflictPolicy,
+    required LevitRetryPolicy? retryPolicy,
+    required LevitTaskGroup? group,
+    required DateTime? deadline,
+    required void Function(Object, StackTrace)? onError,
+    required LevitTaskCachePolicy<T>? cachePolicy,
+    required void Function()? onStart,
+    required void Function(T result)? onSuccess,
+    required void Function(double progress)? onProgress,
+    required void Function()? onCancel,
+    required void Function(LevitTaskEvent event)? onEvent,
+    required LevitTaskMetadata? metadata,
+    required String? debugName,
+  }) {
     _ensureUsable();
 
     final taskId = id ?? _generateTaskId();
@@ -388,15 +417,9 @@ class LevitTaskEngine
         (debugName == null
             ? LevitTaskMetadata.none
             : LevitTaskMetadata(debugName: debugName));
-    late _TaskExecution execution;
     final resolvedGroup = _resolveGroup(group);
     final config = _TaskExecutionConfig(
-      task: (context) => _runInTaskIsolate<I, T>(
-        task: task,
-        input: input,
-        context: context,
-        cancellation: execution.cancellation,
-      ),
+      task: task,
       priority: priority,
       retryPolicy: retryPolicy,
       group: resolvedGroup,
@@ -410,14 +433,13 @@ class LevitTaskEngine
       onCancel: onCancel,
       onEvent: onEvent,
       metadata: taskMetadata,
-      runsInIsolate: true,
+      runsInIsolate: runsInIsolate,
     );
 
     return _submitConfig<T>(
       taskId: taskId,
       config: config,
       conflictPolicy: conflictPolicy,
-      captureExecution: (value) => execution = value,
     );
   }
 
@@ -425,7 +447,6 @@ class LevitTaskEngine
     required String taskId,
     required _TaskExecutionConfig config,
     required LevitTaskConflictPolicy conflictPolicy,
-    void Function(_TaskExecution execution)? captureExecution,
   }) {
     // Root work needs no composite identity. Child keys are typed records, so
     // arbitrary user task IDs cannot collide across ownership boundaries.
@@ -506,7 +527,6 @@ class LevitTaskEngine
             );
             tail.config = config..deadline = deadline;
             _armDeadline(tail);
-            captureExecution?.call(tail);
             _emitTaskEvent(
               _eventFor(
                 tail,
@@ -533,7 +553,6 @@ class LevitTaskEngine
       queuedAt: DateTime.now(),
       config: config,
     );
-    captureExecution?.call(execution);
     config.group._admitTask(execution);
     group ??= _groups.putIfAbsent(
       schedulingKey,
@@ -1287,16 +1306,15 @@ Future<T> _runInTaskIsolate<I, T>({
   required LevitIsolateTask<I, T> task,
   required I input,
   required LevitTaskContext context,
-  required _LevitTaskCancellation cancellation,
 }) async {
   final events = createIsolateReceivePort();
   final exited = Completer<void>();
   final result = Completer<T>();
   LevitIsolateSendPort? cancellationPort;
 
-  void sendCancellation() => cancellationPort?.send(cancellation.reason);
-  if (cancellation.isCancelled) sendCancellation();
-  unawaited(cancellation.cancelled.then((_) => sendCancellation()));
+  void sendCancellation() => cancellationPort?.send(context.cancellationReason);
+  if (context.isCancelled) sendCancellation();
+  unawaited(context.cancelled.then((_) => sendCancellation()));
 
   late final StreamSubscription<dynamic> eventSubscription;
 
@@ -1329,9 +1347,9 @@ Future<T> _runInTaskIsolate<I, T>({
     switch (message.$1) {
       case _IsolateTaskMessage.cancellationPort:
         cancellationPort = message.$2! as LevitIsolateSendPort;
-        if (cancellation.isCancelled) sendCancellation();
+        if (context.isCancelled) sendCancellation();
       case _IsolateTaskMessage.progress:
-        if (!cancellation.isCancelled) {
+        if (!context.isCancelled) {
           context.reportProgress(message.$2! as double);
         }
       case _IsolateTaskMessage.success:
@@ -1341,7 +1359,7 @@ Future<T> _runInTaskIsolate<I, T>({
           LevitTaskCancelledException(
             context.taskId,
             context.executionId,
-            reason: cancellation.reason ??
+            reason: context.cancellationReason ??
                 const LevitTaskCancellationReason(
                   LevitTaskCancellationKind.requested,
                 ),

@@ -8,7 +8,6 @@ on:
     branches: [main]
 
 permissions:
-  id-token: write
   contents: read
   actions: read
 
@@ -24,7 +23,8 @@ jobs:
   # Call Coverage Workflow
   call-coverage:
     uses: ./.github/workflows/coverage.yml
-    secrets: inherit # Passes CODECOV_TOKEN automatically
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # Call Pana Workflow
   call-pana:

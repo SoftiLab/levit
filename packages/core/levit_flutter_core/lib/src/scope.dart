@@ -13,45 +13,21 @@ part of '../levit_flutter_core.dart';
 /// ```
 ///
 /// {@category Flutter Widgets & Interop}
-class LScope extends StatefulWidget {
+class LScope extends _ScopeWidget {
   /// Optional callback to register dependencies in this scope.
+  @override
   final void Function(LevitScope scope)? configure;
-
-  /// The widget subtree that will have access to this scope.
-  final Widget child;
-
-  /// A descriptive name for the scope (used in profiling and logs).
-  ///
-  /// When omitted, Levit generates a unique name from the widget runtime type
-  /// and state identity (for example `LScope@123456`). Set an explicit [name]
-  /// only when you want a stable label for diagnostics.
-  final String? name;
-
-  /// Optional dependency keys for reactive re-initialization.
-  ///
-  /// If provided, the scope is recreated whenever the list length or any
-  /// element value changes according to `!=`.
-  final List<Object?>? args;
-
-  /// Optional completion/retry handle; must remain stable while mounted.
-  final LevitScopeLifecycleController? lifecycle;
-
-  /// Rendered while the previous scope drains during replacement.
-  final Widget Function(BuildContext context)? loading;
-
-  /// Rendered when initialization or replacement cleanup fails.
-  final Widget Function(BuildContext context, Object error)? error;
 
   /// Creates a widget-tree-bound dependency scope.
   const LScope({
     super.key,
     this.configure,
-    required this.child,
-    this.name,
-    this.args,
-    this.lifecycle,
-    this.loading,
-    this.error,
+    required super.child,
+    super.name,
+    super.args,
+    super.lifecycle,
+    super.loading,
+    super.error,
   });
 
   /// A shorthand for creating a scope and immediately registering a dependency.
@@ -167,7 +143,7 @@ class LScope extends StatefulWidget {
   }
 
   @override
-  State<LScope> createState() => _LScopeState();
+  State<LScope> createState() => _ScopeState<LScope>();
 
   /// Returns the nearest [LevitScope] from the widget tree, or `null` if none
   /// exists.
@@ -176,90 +152,6 @@ class LScope extends StatefulWidget {
   /// rebuilds if the ancestor scope instance changes.
   static LevitScope? of(BuildContext context, {bool listen = false}) =>
       _ScopeProvider.of(context, listen: listen);
-}
-
-class _LScopeState extends State<LScope> {
-  late final LevitScopeLifecycleController _lifecycle;
-  LevitScope? _parent;
-  bool _configured = false;
-  LevitScope? _renderedScope;
-  Object? _renderedError;
-  bool _hasRendered = false;
-
-  @override
-  void initState() {
-    super.initState();
-    LevitFlutter.ensureInitialized();
-    _lifecycle = widget.lifecycle ?? LevitScopeLifecycleController();
-    _lifecycle.addListener(_changed);
-  }
-
-  void _changed() {
-    if (!mounted || !_hasRendered) return;
-    if (identical(_lifecycle.scope, _renderedScope) &&
-        identical(_lifecycle.error, _renderedError)) {
-      return;
-    }
-    setState(() {});
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final parent = _ScopeProvider.of(context, listen: true) ?? Ls.currentScope;
-    if (!_configured || !identical(parent, _parent)) {
-      _parent = parent;
-      _configure();
-    }
-  }
-
-  void _configure() {
-    _configured = true;
-    final configure = widget.configure;
-    unawaited(
-      _lifecycle.replace(
-        parent: _parent!,
-        name: widget.name ?? _uniqueScopeName(widget, this),
-        initialize: (scope) => configure?.call(scope),
-      ),
-    );
-  }
-
-  @override
-  void didUpdateWidget(LScope oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(widget.lifecycle, oldWidget.lifecycle)) {
-      throw StateError(
-        'Keep the lifecycle controller stable or use a new widget key.',
-      );
-    }
-    if (widget.name != oldWidget.name ||
-        !_scopeArgsMatch(widget.args, oldWidget.args)) {
-      _configure();
-    }
-  }
-
-  @override
-  void dispose() {
-    _lifecycle.removeListener(_changed);
-    unawaited(_lifecycle.close().catchError(_reportScopeCleanupError));
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    _hasRendered = true;
-    final error = _lifecycle.error;
-    final scope = _lifecycle.scope;
-    _renderedError = error;
-    _renderedScope = scope;
-    if (error != null) {
-      return widget.error?.call(context, error) ??
-          Text('Scope error: $error', textDirection: TextDirection.ltr);
-    }
-    if (scope != null) return _ScopeProvider(scope: scope, child: widget.child);
-    return widget.loading?.call(context) ?? const SizedBox.shrink();
-  }
 }
 
 /// An asynchronous version of [LScope].
@@ -279,54 +171,72 @@ class _LScopeState extends State<LScope> {
 /// ```
 ///
 /// {@category Flutter Widgets & Interop}
-class LAsyncScope extends StatefulWidget {
+class LAsyncScope extends _ScopeWidget {
   /// An async callback to register dependencies.
   /// The child will not render until this Future completes.
+  @override
   final FutureOr<void> Function(LevitScope scope) configure;
-
-  /// The widget subtree to render after initialization.
-  final Widget child;
-
-  /// A descriptive name for the scope.
-  ///
-  /// When omitted, Levit generates a unique name from the widget runtime type
-  /// and state identity. Set an explicit [name] only when you want a stable
-  /// label for diagnostics.
-  final String? name;
-
-  /// Optional builder for the loading state. Defaults to `SizedBox.shrink()`.
-  final Widget Function(BuildContext context)? loading;
-
-  /// Optional builder for the error state. Defaults to a [Text] describing the
-  /// error.
-  final Widget Function(BuildContext context, Object error)? error;
-
-  /// Optional dependency keys for reactive re-initialization.
-  final List<Object?>? args;
-
-  /// Optional completion/retry handle; must remain stable while mounted.
-  final LevitScopeLifecycleController? lifecycle;
 
   /// Creates an asynchronously initialized widget-tree-bound dependency scope.
   const LAsyncScope({
     super.key,
     required this.configure,
-    required this.child,
-    this.name,
-    this.loading,
-    this.error,
-    this.args,
-    this.lifecycle,
+    required super.child,
+    super.name,
+    super.loading,
+    super.error,
+    super.args,
+    super.lifecycle,
   });
 
   @override
-  State<LAsyncScope> createState() => _LAsyncScopeState();
+  State<LAsyncScope> createState() => _ScopeState<LAsyncScope>();
 }
 
-class _LAsyncScopeState extends State<LAsyncScope> {
+abstract class _ScopeWidget extends StatefulWidget {
+  const _ScopeWidget({
+    super.key,
+    required this.child,
+    this.name,
+    this.args,
+    this.lifecycle,
+    this.loading,
+    this.error,
+  });
+
+  FutureOr<void> Function(LevitScope scope)? get configure;
+
+  /// The widget subtree that will have access to this scope.
+  final Widget child;
+
+  /// A descriptive name for the scope (used in profiling and logs).
+  ///
+  /// When omitted, Levit generates a unique name from the widget runtime type
+  /// and state identity (for example `LScope@123456`). Set an explicit [name]
+  /// only when you want a stable label for diagnostics.
+  final String? name;
+
+  /// Optional dependency keys for reactive re-initialization.
+  ///
+  /// If provided, the scope is recreated whenever the list length or any
+  /// element value changes according to `!=`.
+  final List<Object?>? args;
+
+  /// Optional completion/retry handle; must remain stable while mounted.
+  final LevitScopeLifecycleController? lifecycle;
+
+  /// Rendered while the scope initializes or its predecessor drains.
+  /// Defaults to [SizedBox.shrink].
+  final Widget Function(BuildContext context)? loading;
+
+  /// Rendered when initialization or replacement cleanup fails.
+  /// Defaults to a [Text] widget showing the error.
+  final Widget Function(BuildContext context, Object error)? error;
+}
+
+class _ScopeState<W extends _ScopeWidget> extends State<W> {
   late final LevitScopeLifecycleController _lifecycle;
   LevitScope? _parent;
-  bool _configured = false;
   LevitScope? _renderedScope;
   Object? _renderedError;
   bool _hasRendered = false;
@@ -352,26 +262,25 @@ class _LAsyncScopeState extends State<LAsyncScope> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final parent = _ScopeProvider.of(context, listen: true) ?? Ls.currentScope;
-    if (!_configured || !identical(parent, _parent)) {
+    if (!identical(parent, _parent)) {
       _parent = parent;
       _configure();
     }
   }
 
   void _configure() {
-    _configured = true;
     final configure = widget.configure;
     unawaited(
       _lifecycle.replace(
         parent: _parent!,
         name: widget.name ?? _uniqueScopeName(widget, this),
-        initialize: (scope) => configure(scope),
+        initialize: (scope) => configure?.call(scope),
       ),
     );
   }
 
   @override
-  void didUpdateWidget(LAsyncScope oldWidget) {
+  void didUpdateWidget(W oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(widget.lifecycle, oldWidget.lifecycle)) {
       throw StateError(
