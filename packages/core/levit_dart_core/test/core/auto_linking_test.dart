@@ -89,7 +89,7 @@ void main() {
 
           // Exercise operator[]
           final first = list[0];
-          expect(first, isNotNull);
+          expect(first, same(controller.count));
 
           // Exercise operator[]=
           list[0] = first;
@@ -127,11 +127,13 @@ void main() {
 
 class InterceptController extends LevitController {
   List<LxReactive>? captureList;
+  late final LxInt count;
+
   @override
   void onInit() {
     captureList =
         Zone.current[LevitAutoLinkSpi.captureKey] as List<LxReactive>?;
-    0.lx; // Create a reactive to populate the list
+    count = 0.lx;
     super.onInit();
   }
 }

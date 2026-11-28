@@ -2,6 +2,10 @@ name: Coverage
 
 on:
   workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        description: Token for uploading coverage reports to Codecov.
+        required: false
   workflow_dispatch:
 
 jobs:
@@ -25,7 +29,7 @@ jobs:
           - { name: "levit_devtools", path: "packages/tools/levit_devtools" }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Levit
         uses: ./.github/actions/setup-levit
@@ -36,7 +40,7 @@ jobs:
         run: dart run scripts/check_coverage.dart --quiet --fail-under=100 --timeout=600 --only=${{ matrix.package.name }} packages
 
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: ${{ matrix.package.path }}/coverage/lcov.info
           flags: ${{ matrix.package.name }}

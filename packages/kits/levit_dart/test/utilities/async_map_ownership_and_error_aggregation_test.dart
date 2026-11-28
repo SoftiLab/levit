@@ -51,7 +51,7 @@ void main() {
 
           // Complete initial load so refresh replaces the completed producer.
           expect(await map.fetch('k'), 42);
-          final initialEntry = map.peek('k')!;
+          final initialEntry = map.peek('k');
 
           final middleware = _ThrowingDisposeMiddleware();
           const token = 'async-map-dispose-mw';
@@ -66,7 +66,7 @@ void main() {
           await expectLater(evicting, throwsA(isA<LxCleanupException>()));
           middleware.shouldThrow = false;
 
-          expect(initialEntry.isClosed, isTrue);
+          expect(initialEntry?.isClosed, isTrue);
           await expectLater(
             map.close(),
             throwsA(isA<LevitDisposalException>()),

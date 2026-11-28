@@ -15,7 +15,7 @@ void main() {
       final deps = List.generate(20, (i) => i.lx);
       final computed = LxComputed(() {
         for (final d in deps) {
-          d.value;
+          d(); // Track each dependency while returning a constant value.
         }
         return 0;
       });

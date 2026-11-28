@@ -30,8 +30,8 @@ void main() {
 
       snapshot.applyEvent(LevitSnapshotEvent(sessionId: 'abc', state: data));
 
-      final dep = snapshot.dependencies['1:MyService']!;
-      expect(dep.type, LevitDependencyType.controller);
+      final dep = snapshot.dependencies['1:MyService'];
+      expect(dep?.type, LevitDependencyType.controller);
     });
 
     test('instance-ready events classify store dependencies', () {
@@ -63,8 +63,8 @@ void main() {
         ),
       );
 
-      final dep = snapshot.dependencies['1:MyState']!;
-      expect(dep.type, LevitDependencyType.store);
+      final dep = snapshot.dependencies['1:MyState'];
+      expect(dep?.type, LevitDependencyType.store);
     });
   });
 }

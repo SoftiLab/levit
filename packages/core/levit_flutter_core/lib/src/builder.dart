@@ -266,7 +266,7 @@ mixin _LReactiveElementMixin<W extends Widget> on ComponentElement {
   LxListenerContext? _cachedContext;
   LevitScope? _cachedScope;
   bool _scopeResolved = false;
-  late final VoidCallback _onNotifyCallback = onNotify;
+  late final _onNotifyCallback = onNotify;
 
   LevitScope? _resolveNearestScope() {
     if (!_scopeResolved) {

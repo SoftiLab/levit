@@ -14,7 +14,33 @@ class _LifecycleProbeController extends LevitController
   }
 }
 
+class _AppAndLoopController extends LevitController
+    with LevitLoopMixin, LevitLoopLifecycleMixin, LevitAppLifecycleMixin {}
+
 void main() {
+  test('lifecycle mixins forward pending cleanup and its failure', () async {
+    final controller = _AppAndLoopController();
+    final release = Completer<void>();
+    final error = StateError('resource cleanup failed');
+    controller.own(() async {
+      await release.future;
+      throw error;
+    });
+
+    final closing = controller.onClose();
+    expect(controller.onClose(), same(closing));
+    final check = expectLater(
+      closing,
+      throwsA(isA<LevitDisposalException>().having(
+        (e) => e.failures.single.error,
+        'resource error',
+        same(error),
+      )),
+    );
+    release.complete();
+    await check;
+  });
+
   testWidgets(
     'showLevitDialog keeps captured scope after launching widget unmounts',
     (tester) async {

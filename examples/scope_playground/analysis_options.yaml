@@ -3,3 +3,7 @@ analyzer:
     - build/**
     - web/**
 include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    unnecessary_statements: true

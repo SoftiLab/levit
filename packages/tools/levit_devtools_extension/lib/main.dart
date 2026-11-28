@@ -20,9 +20,9 @@ class LevitDevToolsApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LevitDevToolsScreen(
-      client: client ?? VmServiceLevitClient(),
-      ownsClient: client == null,
+    return LScope.put<LevitDevToolsClient>(
+      () => client ?? VmServiceLevitClient(),
+      child: LevitDevToolsScreen(ownsClient: client == null),
     );
   }
 }

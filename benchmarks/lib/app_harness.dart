@@ -19,10 +19,12 @@ Future<AppBenchmarkController> mountBenchmarkDashboard() async {
     element.visitChildren(visit);
   }
 
-  visit(WidgetsBinding.instance.rootElement!);
-  if (controller == null) throw StateError('Dashboard did not mount');
+  final root = WidgetsBinding.instance.rootElement;
+  if (root != null) visit(root);
+  final dashboard = controller;
+  if (dashboard == null) throw StateError('Dashboard did not mount');
   await Future<void>.delayed(const Duration(milliseconds: 300));
-  return controller!;
+  return dashboard;
 }
 
 Future<void> unmountBenchmarkDashboard() async {

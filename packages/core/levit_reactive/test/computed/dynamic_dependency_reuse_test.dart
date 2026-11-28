@@ -20,7 +20,7 @@ void main() {
       var order = List.generate(20, (i) => i);
       var runs = 0;
       final derived = LxComputed(() {
-        revision.value;
+        revision(); // Recompute when the test changes the read order.
         runs++;
         return order.fold(0, (sum, index) => sum + sources[index].value);
       });
@@ -104,8 +104,7 @@ void main() {
     final broken = LxComputed(() {
       final value = source.value;
       if (value == 1) {
-        other.value;
-        throw StateError('failed capture');
+        throw StateError('failed capture with value ${other.value}');
       }
       return value;
     });

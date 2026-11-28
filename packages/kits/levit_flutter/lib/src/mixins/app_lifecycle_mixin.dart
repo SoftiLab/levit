@@ -1,5 +1,13 @@
 part of '../../levit_flutter.dart';
 
+FutureOr<void> _closeAfterDetaching(
+  void Function() detachObserver,
+  FutureOr<void> Function() closeController,
+) {
+  detachObserver();
+  return closeController();
+}
+
 /// A mixin that connects a [LevitController] to the Flutter application lifecycle.
 ///
 /// Automatically registers a [WidgetsBindingObserver] during [onInit] and
@@ -43,10 +51,8 @@ mixin LevitAppLifecycleMixin on LevitController {
   }
 
   @override
-  FutureOr<void> onClose() {
-    _detachObserver();
-    return super.onClose();
-  }
+  FutureOr<void> onClose() =>
+      _closeAfterDetaching(_detachObserver, () => super.onClose());
 
   /// Called when the application is visible and responding to user input
   /// ([AppLifecycleState.resumed]).

@@ -406,11 +406,14 @@ class Levit {
   }
 
   /// Runs a supported typed cleanup operation. Other resources need an adapter.
-  static FutureOr<void> _levitDisposeItem(Object? item) {
-    if (item == null) return null;
-    if (item is LxReactive) return LxSpi.closeSyncOrAsync(item);
-    if (item is LevitScopeDisposable) return item.onClose();
-    if (item is LevitDisposable) return item.dispose();
+  static FutureOr<void> _levitDisposeItem(Object item) => switch (item) {
+        LxReactive() => LxSpi.closeSyncOrAsync(item),
+        LevitScopeDisposable() => item.onClose(),
+        LevitDisposable() => item.dispose(),
+        _ => _disposeExternalResource(item),
+      };
+
+  static FutureOr<void> _disposeExternalResource(Object item) {
     if (item is StreamSubscription) return item.cancel();
     if (item is Timer) {
       item.cancel();

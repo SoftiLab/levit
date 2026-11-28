@@ -91,17 +91,18 @@ void main() {
     test('onTaskError setter reconfigures an existing task engine', () async {
       final errors = <Object>[];
 
-      controller.taskEngine;
+      final engine = controller.taskEngine;
       controller.onTaskError = (error, _) => errors.add(error);
 
       await expectLater(
-        controller.runTask((_) => throw StateError('configured'), id: 'err'),
+        engine.schedule<void>((_) => throw StateError('configured'), id: 'err'),
         throwsA(isA<StateError>()),
       );
 
       controller.onTaskError = null;
 
       expect(controller.onTaskError, isNull);
+      expect(engine.onTaskError, isNull);
       expect(errors.single, isA<StateError>());
     });
 

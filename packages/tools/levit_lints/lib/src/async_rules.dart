@@ -75,11 +75,10 @@ class _AwaitLifecycleVisitor extends SimpleAstVisitor<void> {
         !_isAsync(node.staticType)) {
       return;
     }
-    AstNode expression = node;
-    while (expression.parent is ParenthesizedExpression) {
-      expression = expression.parent!;
+    var parent = node.parent;
+    while (parent is ParenthesizedExpression) {
+      parent = parent.parent;
     }
-    final parent = expression.parent;
     if (parent is AwaitExpression ||
         parent is ReturnStatement ||
         parent is ExpressionFunctionBody) {

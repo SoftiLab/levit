@@ -120,21 +120,22 @@ final class NexusCommandHistory extends LevitController {
   final void Function(Map<String, dynamic>) send;
   final List<NexusCommand> _undo = [];
   final List<NexusCommand> _redo = [];
+  // Reactive getters track edits to the plain undo and redo lists.
   late final LxInt _revision = own(0.lx);
   static const capacity = 100;
   NexusCommandHistory(this.engine, {required this.send});
   bool get canUndo {
-    _revision.value;
+    _revision();
     return _undo.isNotEmpty;
   }
 
   bool get canRedo {
-    _revision.value;
+    _revision();
     return _redo.isNotEmpty;
   }
 
   int get length {
-    _revision.value;
+    _revision();
     return _undo.length;
   }
 

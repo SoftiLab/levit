@@ -23,7 +23,7 @@ jobs:
           - flutter: '3.29.0' # Dart 3.7.0
             dart_packages: packages/tools/levit_mcp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-levit
         with:
           flutter-version: ${{ matrix.flutter }}
@@ -54,7 +54,7 @@ jobs:
       matrix:
         sdk: ['3.10.0', stable]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: ${{ matrix.sdk }}
@@ -73,7 +73,7 @@ jobs:
     name: Checks (Dart, Flutter)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Levit
         uses: ./.github/actions/setup-levit

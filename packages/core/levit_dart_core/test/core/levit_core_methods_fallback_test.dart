@@ -48,20 +48,15 @@ void main() {
 
     test(
       'auto-linking accepts unowned capture and non-controller registrations',
-      () {
+      () async {
         Levit.enableAutoLinking();
 
         // runCaptured without ownerId (auto_linking.dart line 60)
         LevitAutoLinkSpi.runCaptured(() => 1);
 
-        // Chained capture and Adoption in processInstance (auto_linking.dart 184-185)
-        Levit.put(() {
-          1.lx;
-          2.lx;
-          return 'test';
-        }, tag: 'multi');
-
-        Levit.disableAutoLinking();
+        final values = Levit.put(() => [1.lx, 2.lx], tag: 'multi');
+        expect(Levit.find<List<LxInt>>(tag: 'multi'), same(values));
+        await Future.wait(values.map((value) => value.close()));
       },
     );
   });

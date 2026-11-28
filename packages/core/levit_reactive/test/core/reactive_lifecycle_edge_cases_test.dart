@@ -6,12 +6,10 @@ import 'package:levit_reactive/levit_reactive.dart';
 void main() {
   test('LxComputed init failure does not corrupt dependency tracking', () {
     final a = LxVar(1);
-    try {
-      LxComputed(() {
-        a.value;
-        throw StateError('boom');
-      });
-    } catch (_) {}
+    expect(
+      () => LxComputed<int>(() => throw StateError('invalid value ${a.value}')),
+      throwsStateError,
+    );
 
     final b = LxVar(1);
     final computed = LxComputed(() => b.value + 1, eager: true);

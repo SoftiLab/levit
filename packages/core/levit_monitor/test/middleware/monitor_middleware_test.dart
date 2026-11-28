@@ -227,7 +227,7 @@ void main() {
       final computed = (() => source.value * 2).lx;
 
       // Trigger computation to establish dependency
-      computed.value;
+      final _ = computed.value;
       await Future.delayed(Duration.zero);
 
       final graphEvents = transport.events.where(

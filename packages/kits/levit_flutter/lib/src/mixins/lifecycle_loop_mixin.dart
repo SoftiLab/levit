@@ -60,10 +60,8 @@ mixin LevitLoopLifecycleMixin on LevitController, LevitLoopMixin {
   }
 
   @override
-  FutureOr<void> onClose() {
-    _detachLifecycleObserver();
-    return super.onClose();
-  }
+  FutureOr<void> onClose() =>
+      _closeAfterDetaching(_detachLifecycleObserver, () => super.onClose());
 
   /// Whether to also pause and resume services marked `permanent: true` when
   /// the app leaves and returns to the foreground.

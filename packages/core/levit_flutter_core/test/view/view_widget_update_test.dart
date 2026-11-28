@@ -99,12 +99,13 @@ void main() {
     }
 
     await tester.pumpWidget(buildStage(1));
-    final firstText = tester.widget<Text>(find.byType(Text)).data!;
+    final firstText = tester.widget<Text>(find.byType(Text)).data;
 
     await tester.pumpWidget(buildStage(2));
     await tester.pumpAndSettle();
-    final secondText = tester.widget<Text>(find.byType(Text)).data!;
+    final secondText = tester.widget<Text>(find.byType(Text)).data;
 
+    expect([firstText, secondText], everyElement(startsWith('scope:')));
     expect(secondText, isNot(equals(firstText)));
   });
 
@@ -125,12 +126,13 @@ void main() {
 
     await tester.pumpWidget(buildStage(1));
     await tester.pumpAndSettle();
-    final firstText = tester.widget<Text>(find.byType(Text)).data!;
+    final firstText = tester.widget<Text>(find.byType(Text)).data;
 
     await tester.pumpWidget(buildStage(2));
     await tester.pumpAndSettle();
-    final secondText = tester.widget<Text>(find.byType(Text)).data!;
+    final secondText = tester.widget<Text>(find.byType(Text)).data;
 
+    expect([firstText, secondText], everyElement(startsWith('async-scope:')));
     expect(secondText, isNot(equals(firstText)));
   });
 }

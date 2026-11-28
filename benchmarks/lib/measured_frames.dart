@@ -40,8 +40,10 @@ class MeasuredFrames {
     if (!_complete.isCompleted) {
       throw StateError('Frame timings are incomplete.');
     }
-    return _measured.map((timestamp) {
-      final frame = _received[timestamp]!;
+    return _measured.map((frameNumber) {
+      final frame =
+          _received[frameNumber] ??
+          (throw StateError('Missing timing for measured frame $frameNumber.'));
       return {
         'buildUs': frame.buildDuration.inMicroseconds,
         'rasterUs': frame.rasterDuration.inMicroseconds,

@@ -17,9 +17,7 @@ Future<void> main() async {
           runs++;
           return kind == 'sparseIndex' || kind == 'shift' ? list[i] : map[i]!;
         });
-        c.addListener(() {
-          c.value;
-        });
+        c.addListener(c.call);
         return c;
       }
 

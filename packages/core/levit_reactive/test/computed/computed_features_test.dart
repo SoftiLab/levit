@@ -24,7 +24,7 @@ void main() {
       source.value = 1;
       await Future.delayed(Duration(milliseconds: 10));
       // Access value to trigger lazy recomputation
-      memo.value;
+      expect(memo.value, 0);
       expect(computeCount, greaterThan(initialCount));
 
       // Change 1 -> 2, result becomes 1

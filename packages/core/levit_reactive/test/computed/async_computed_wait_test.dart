@@ -83,9 +83,8 @@ void main() {
         var calls = 0;
 
         final computed = LxComputed.async(() {
-          source.value;
           calls++;
-          return calls == 1 ? firstGate.future : trailingGate.future;
+          return source.value == 0 ? firstGate.future : trailingGate.future;
         }, concurrency: LxAsyncConcurrency.exhaustLatest);
 
         void listener() {}
